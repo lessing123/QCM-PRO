@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Poppins:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   BASE
+   ============================================================ */
+@layer base {
+  :root { color-scheme: light; }
+  .dark  { color-scheme: dark; }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply text-slate-900 font-sans;
+    background-color: rgb(226 232 240);
+    background-image: linear-gradient(180deg, rgb(241 245 249) 0%, rgb(226 232 240) 100%);
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
+    background-image: none;
+  }
+
+  .font-display {
+    font-family: 'Poppins', 'Roboto', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', 'Roboto', system-ui, sans-serif;
+  }
+
+  ::-webkit-scrollbar          { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track    { background: transparent; }
+  ::-webkit-scrollbar-thumb    { @apply bg-slate-300 rounded-full; }
+  .dark ::-webkit-scrollbar-thumb { @apply bg-slate-600; }
+
+  ::selection { background: rgb(99 102 241 / 0.2); }
+}
+
+/* ============================================================
+   COMPONENTS  — NOTE : pas de dark: ni /XX dans @apply
+   ============================================================ */
+@layer components {
+
+  /* Page headers */
+  .page-title    { @apply text-2xl font-bold tracking-tight text-slate-900; }
+  .dark .page-title    { @apply text-white; }
+  .page-subtitle { @apply mt-1 text-sm text-slate-500; }
+  .dark .page-subtitle { @apply text-slate-400; }
+
+  /* Divider */
+  .divider       { @apply border-t border-slate-200; }
+  .dark .divider { @apply border-slate-700; }
+
+  /* Badge base */
+  .badge { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold; }
+
+  /* Badge variants — light */
+  .badge-primary { @apply bg-primary-100 text-primary-700; }
+  .badge-success { @apply bg-success-100 text-success-700; }
+  .badge-danger  { @apply bg-danger-100  text-danger-700;  }
+  .badge-warning { @apply bg-warning-100 text-warning-700; }
+  .badge-neutral { @apply bg-slate-100   text-slate-600;   }
+
+  /* Badge variants — dark (sans @apply dark:) */
+  .dark .badge-primary { background-color: rgb(49 46 129 / 0.5);  color: #a5b4fc; }
+  .dark .badge-success { background-color: rgb(6  78  59 / 0.5);  color: #6ee7b7; }
+  .dark .badge-danger  { background-color: rgb(136 19 55 / 0.5);  color: #fda4af; }
+  .dark .badge-warning { background-color: rgb(120 53 15 / 0.5);  color: #fcd34d; }
+  .dark .badge-neutral { @apply bg-slate-700 text-slate-300; }
+
+  /* Skeleton */
+  .skeleton      { @apply rounded-xl bg-slate-200 animate-pulse; }
+  .dark .skeleton { @apply bg-slate-700; }
+
+  /* Exam mode anti-triche */
+  .exam-mode { user-select: none; -webkit-user-select: none; }
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+@layer utilities {
+  /* Glass effect — sans opacity modifier dans @apply */
+  .glass {
+    background-color: rgb(255 255 255 / 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .dark .glass {
+    background-color: rgb(15 23 42 / 0.85);
+  }
+
+  .glass-card {
+    background-color: rgb(255 255 255 / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .dark .glass-card {
+    background-color: rgb(30 41 59 / 0.7);
+  }
+
+  .text-balance { text-wrap: balance; }
+}

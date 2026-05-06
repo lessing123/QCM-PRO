@@ -1,0 +1,921 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guide d'utilisation – Plateforme QCM ESGIS</title>
+  <style>
+    /* ===== VARIABLES ===== */
+    :root {
+      --rouge: #8B0000;
+      --rouge-clair: #a50000;
+      --or: #C9A227;
+      --bleu: #1e3a8a;
+      --gris: #6b7280;
+      --gris-clair: #f3f4f6;
+      --blanc: #ffffff;
+    }
+
+    /* ===== RESET ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #f0f0f0;
+    }
+
+    /* ===== BOUTON IMPRIMER (masqué à l'impression) ===== */
+    .print-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--rouge);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+      transition: background 0.2s;
+    }
+    .print-btn:hover { background: var(--rouge-clair); }
+
+    /* ===== PAGE ===== */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      background: white;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+      padding: 20mm 18mm;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
+
+    /* ===== PAGE DE COUVERTURE ===== */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 257mm;
+      text-align: center;
+      background: linear-gradient(160deg, #8B0000 0%, #4a0000 100%);
+      color: white;
+      border-radius: 4px;
+      padding: 30mm 20mm;
+      position: relative;
+      overflow: hidden;
+    }
+    .cover::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 70% 30%, rgba(201,162,39,0.15) 0%, transparent 60%);
+    }
+    .cover-logo {
+      width: 280px;
+      background: white;
+      border-radius: 16px;
+      padding: 16px 24px;
+      margin-bottom: 40px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .cover h1 {
+      font-size: 28pt;
+      font-weight: 900;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .cover .subtitle {
+      font-size: 14pt;
+      opacity: 0.85;
+      margin-bottom: 50px;
+      font-weight: 300;
+    }
+    .cover .meta {
+      font-size: 10pt;
+      opacity: 0.7;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      padding-top: 20px;
+      width: 100%;
+    }
+    .cover .badge {
+      display: inline-block;
+      background: rgba(201,162,39,0.25);
+      border: 1px solid rgba(201,162,39,0.5);
+      color: #fde68a;
+      padding: 6px 18px;
+      border-radius: 100px;
+      font-size: 10pt;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    /* ===== SOMMAIRE ===== */
+    .toc-title {
+      font-size: 20pt;
+      font-weight: 800;
+      color: var(--rouge);
+      border-bottom: 3px solid var(--rouge);
+      padding-bottom: 8px;
+      margin-bottom: 28px;
+    }
+    .toc-section { margin-bottom: 8px; }
+    .toc-section a {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      text-decoration: none;
+      color: #1f2937;
+      padding: 6px 0;
+      border-bottom: 1px dotted #d1d5db;
+      font-size: 11pt;
+    }
+    .toc-section a:hover { color: var(--rouge); }
+    .toc-section .num { color: var(--rouge); font-weight: 700; margin-right: 10px; }
+    .toc-sub a {
+      padding-left: 20px;
+      font-size: 10pt;
+      color: var(--gris);
+    }
+
+    /* ===== CONTENU ===== */
+    .section-header {
+      background: var(--rouge);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 16pt;
+      font-weight: 800;
+      margin-bottom: 24px;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-header .icon { font-size: 20pt; }
+
+    h2 {
+      font-size: 14pt;
+      font-weight: 700;
+      color: var(--rouge);
+      margin: 20px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #fde8e8;
+    }
+    h3 {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 14px 0 8px;
+    }
+    p { margin-bottom: 10px; }
+
+    /* ===== COMPOSANTS ===== */
+    .info-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 10.5pt;
+    }
+    .warning-box {
+      background: #fff7ed;
+      border-left: 4px solid #f97316;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 10.5pt;
+    }
+    .success-box {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 10.5pt;
+    }
+    .credentials {
+      background: #1f2937;
+      color: #f9fafb;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 10.5pt;
+      margin: 12px 0;
+    }
+    .credentials .label { color: #9ca3af; font-size: 9pt; margin-bottom: 4px; }
+    .credentials .value { color: #60a5fa; margin-bottom: 12px; }
+    .credentials .value:last-child { margin-bottom: 0; }
+
+    /* ===== ÉTAPES ===== */
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 12px 0; }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 14px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(step);
+      min-width: 30px;
+      height: 30px;
+      background: var(--rouge);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12pt;
+      flex-shrink: 0;
+    }
+    .steps li .step-content { padding-top: 4px; flex: 1; }
+
+    /* ===== TABLE ===== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 10pt;
+    }
+    th {
+      background: var(--rouge);
+      color: white;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #fafafa; }
+    tr:hover td { background: #fef2f2; }
+
+    /* ===== BADGE / CHIP ===== */
+    .chip {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: 9pt;
+      font-weight: 600;
+    }
+    .chip-admin { background: #dbeafe; color: #1d4ed8; }
+    .chip-student { background: #dcfce7; color: #15803d; }
+    .chip-new { background: #fef9c3; color: #854d0e; }
+
+    /* ===== CASE À COCHER (scénarios de test) ===== */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 10.5pt;
+    }
+    .checklist li::before {
+      content: '☐';
+      font-size: 14pt;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .checklist li.done::before { content: '☑'; color: #22c55e; }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      margin-top: 30px;
+      padding-top: 12px;
+      border-top: 2px solid var(--rouge);
+      text-align: center;
+      font-size: 9pt;
+      color: var(--gris);
+    }
+
+    /* ===== MEDIA PRINT ===== */
+    @media print {
+      .print-btn { display: none; }
+      body { background: white; }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Enregistrer en PDF</button>
+
+<!-- ====================================================
+     PAGE 1 — COUVERTURE
+====================================================== -->
+<div class="page" style="padding:0;">
+  <div class="cover">
+    <!-- Logo ESGIS -->
+    <img src="data:image/jpeg;base64,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" alt="ESGIS" class="cover-logo" />
+
+    <div class="badge">VERSION 1.0 — 2026</div>
+    <h1>Guide d'utilisation</h1>
+    <p class="subtitle">Plateforme de gestion d'examens QCM en ligne</p>
+
+    <div style="display:flex; gap:30px; margin-bottom:40px; font-size:11pt;">
+      <div style="text-align:center;">
+        <div style="font-size:24pt; font-weight:900; color:#fde68a;">2</div>
+        <div style="opacity:0.7;">Examens de test</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:24pt; font-weight:900; color:#fde68a;">5</div>
+        <div style="opacity:0.7;">Étudiants de test</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:24pt; font-weight:900; color:#fde68a;">20</div>
+        <div style="opacity:0.7;">Questions QCM</div>
+      </div>
+    </div>
+
+    <div class="meta">
+      École Supérieure de Génie Informatique et des Sciences (ESGIS)<br/>
+      Stack : React · Node.js · Express · Prisma · SQLite · Tailwind CSS<br/>
+      Document généré le 30 avril 2026
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     PAGE 2 — SOMMAIRE
+====================================================== -->
+<div class="page">
+  <p class="toc-title">📋 Table des matières</p>
+
+  <div class="toc-section">
+    <a href="#installation"><span><span class="num">1.</span> Installation et démarrage</span><span>3</span></a>
+    <div class="toc-sub">
+      <a href="#prerequis"><span>1.1 Prérequis</span><span>3</span></a>
+      <a href="#demarrage"><span>1.2 Démarrage des serveurs</span><span>3</span></a>
+      <a href="#acces"><span>1.3 Accès à l'application</span><span>3</span></a>
+    </div>
+  </div>
+
+  <div class="toc-section">
+    <a href="#comptes"><span><span class="num">2.</span> Comptes de test</span><span>4</span></a>
+  </div>
+
+  <div class="toc-section">
+    <a href="#admin"><span><span class="num">3.</span> Guide administrateur</span><span>4</span></a>
+    <div class="toc-sub">
+      <a href="#dashboard"><span>3.1 Tableau de bord</span><span>4</span></a>
+      <a href="#creer-examen"><span>3.2 Créer un examen</span><span>5</span></a>
+      <a href="#gestion-etudiants"><span>3.3 Gestion des étudiants</span><span>5</span></a>
+      <a href="#resultats"><span>3.4 Consulter les résultats</span><span>5</span></a>
+    </div>
+  </div>
+
+  <div class="toc-section">
+    <a href="#etudiant"><span><span class="num">4.</span> Guide étudiant</span><span>6</span></a>
+    <div class="toc-sub">
+      <a href="#connexion"><span>4.1 Connexion et tableau de bord</span><span>6</span></a>
+      <a href="#passer-examen"><span>4.2 Passer un examen</span><span>6</span></a>
+      <a href="#resultats-etudiant"><span>4.3 Consulter ses résultats</span><span>7</span></a>
+    </div>
+  </div>
+
+  <div class="toc-section">
+    <a href="#tests"><span><span class="num">5.</span> Scénarios de test</span><span>7</span></a>
+    <div class="toc-sub">
+      <a href="#test-admin"><span>5.1 Tests côté administrateur</span><span>7</span></a>
+      <a href="#test-etudiant"><span>5.2 Tests côté étudiant</span><span>8</span></a>
+      <a href="#test-securite"><span>5.3 Tests de sécurité</span><span>8</span></a>
+    </div>
+  </div>
+
+  <div class="toc-section">
+    <a href="#api"><span><span class="num">6.</span> Référence API</span><span>9</span></a>
+  </div>
+
+  <div class="toc-section">
+    <a href="#faq"><span><span class="num">7.</span> FAQ &amp; Dépannage</span><span>9</span></a>
+  </div>
+
+  <div class="footer">
+    Plateforme QCM ESGIS — Guide d'utilisation v1.0 — 2026
+  </div>
+</div>
+
+<!-- ====================================================
+     PAGE 3 — INSTALLATION
+====================================================== -->
+<div class="page" id="installation">
+  <div class="section-header">
+    <span class="icon">🚀</span>
+    <span>1. Installation et démarrage</span>
+  </div>
+
+  <h2 id="prerequis">1.1 Prérequis</h2>
+  <table>
+    <tr>
+      <th>Logiciel</th>
+      <th>Version minimale</th>
+      <th>Vérification</th>
+    </tr>
+    <tr>
+      <td><strong>Node.js</strong></td>
+      <td>v18.0 ou supérieur</td>
+      <td><code>node --version</code></td>
+    </tr>
+    <tr>
+      <td><strong>npm</strong></td>
+      <td>v9.0 ou supérieur</td>
+      <td><code>npm --version</code></td>
+    </tr>
+    <tr>
+      <td><strong>Navigateur</strong></td>
+      <td>Chrome 90+ / Firefox 88+ / Edge 90+</td>
+      <td>—</td>
+    </tr>
+  </table>
+
+  <h2 id="demarrage">1.2 Démarrage des serveurs</h2>
+
+  <h3>Première installation</h3>
+  <div class="info-box">
+    ℹ️ À effectuer <strong>une seule fois</strong> lors de la première utilisation.
+  </div>
+  <ol class="steps">
+    <li>
+      <div class="step-content">
+        Ouvrez un terminal dans le dossier <code>QCM/</code> et installez les dépendances backend :
+        <div class="credentials">
+          <div class="label">Terminal → dossier backend</div>
+          <div class="value">cd backend &amp;&amp; npm install</div>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-content">
+        Initialisez la base de données et injectez les données de test :
+        <div class="credentials">
+          <div class="label">Toujours dans backend/</div>
+          <div class="value">npx prisma db push</div>
+          <div class="value">npm run seed</div>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-content">
+        Dans un <strong>second terminal</strong>, installez les dépendances frontend :
+        <div class="credentials">
+          <div class="label">Terminal → dossier frontend</div>
+          <div class="value">cd frontend &amp;&amp; npm install</div>
+        </div>
+      </div>
+    </li>
+  </ol>
+
+  <h3>Démarrage quotidien</h3>
+  <ol class="steps">
+    <li>
+      <div class="step-content">
+        <strong>Terminal 1</strong> — Démarrer le serveur backend (API) :
+        <div class="credentials">
+          <div class="value">cd backend &amp;&amp; npm run dev</div>
+          <div class="label">✅ Le serveur démarre sur http://localhost:3001</div>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-content">
+        <strong>Terminal 2</strong> — Démarrer le serveur frontend :
+        <div class="credentials">
+          <div class="value">cd frontend &amp;&amp; npm run dev</div>
+          <div class="label">✅ L'application démarre sur http://localhost:5173</div>
+        </div>
+      </div>
+    </li>
+  </ol>
+
+  <h2 id="acces">1.3 Accès à l'application</h2>
+  <table>
+    <tr>
+      <th>Service</th>
+      <th>URL</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td><strong>Application web</strong></td>
+      <td><code>http://localhost:5173</code></td>
+      <td>Interface utilisateur principale</td>
+    </tr>
+    <tr>
+      <td><strong>API REST</strong></td>
+      <td><code>http://localhost:3001/api</code></td>
+      <td>Backend — endpoints JSON</td>
+    </tr>
+    <tr>
+      <td><strong>Health check</strong></td>
+      <td><code>http://localhost:3001/api/health</code></td>
+      <td>Vérifier que l'API est active</td>
+    </tr>
+  </table>
+
+  <div class="footer">
+    Plateforme QCM ESGIS — Guide d'utilisation v1.0 — 2026
+  </div>
+</div>
+
+<!-- ====================================================
+     PAGE 4 — COMPTES + GUIDE ADMIN
+====================================================== -->
+<div class="page" id="comptes">
+  <div class="section-header">
+    <span class="icon">🔑</span>
+    <span>2. Comptes de test disponibles</span>
+  </div>
+
+  <h2>Administrateur</h2>
+  <div class="credentials">
+    <div class="label">Email</div>
+    <div class="value">admin@test.com</div>
+    <div class="label">Mot de passe</div>
+    <div class="value">admin123</div>
+    <div class="label">Rôle</div>
+    <div class="value" style="color: #fde68a;">ADMIN — accès total à la plateforme</div>
+  </div>
+
+  <h2>Étudiants</h2>
+  <table>
+    <tr>
+      <th>Nom</th>
+      <th>Email</th>
+      <th>Mot de passe</th>
+    </tr>
+    <tr><td>Jean Dupont</td><td>etudiant1@test.com</td><td>student123</td></tr>
+    <tr><td>Marie Martin</td><td>etudiant2@test.com</td><td>student123</td></tr>
+    <tr><td>Pierre Bernard</td><td>etudiant3@test.com</td><td>student123</td></tr>
+    <tr><td>Sophie Petit</td><td>etudiant4@test.com</td><td>student123</td></tr>
+    <tr><td>Lucas Durand</td><td>etudiant5@test.com</td><td>student123</td></tr>
+  </table>
+
+  <!-- ============ GUIDE ADMIN ============ -->
+  <div id="admin" style="margin-top:20px;">
+    <div class="section-header">
+      <span class="icon">👨‍💼</span>
+      <span>3. Guide administrateur</span>
+    </div>
+
+    <h2 id="dashboard">3.1 Tableau de bord</h2>
+    <p>Après connexion avec le compte admin, vous accédez au tableau de bord qui affiche :</p>
+    <ul style="padding-left:20px; margin-bottom:10px;">
+      <li>Le nombre total d'examens créés</li>
+      <li>Le nombre d'étudiants enregistrés</li>
+      <li>Le nombre de tentatives effectuées</li>
+      <li>Le score moyen sur l'ensemble de la plateforme</li>
+      <li>Les 5 examens les plus récents</li>
+      <li>Les 10 dernières tentatives terminées</li>
+    </ul>
+
+    <h2 id="creer-examen">3.2 Créer un examen</h2>
+    <ol class="steps">
+      <li><div class="step-content">Aller dans <strong>Examens → Nouvel examen</strong> via la navigation.</div></li>
+      <li><div class="step-content">Remplir le formulaire : titre, description, durée (en minutes), nombre de tentatives autorisées.</div></li>
+      <li><div class="step-content">Cocher <em>Mélanger les questions</em> et/ou <em>Mélanger les réponses</em> si souhaité.</div></li>
+      <li><div class="step-content">Assigner un ou plusieurs <strong>groupes d'étudiants</strong> (optionnel — sans groupe, l'examen est visible par tous).</div></li>
+      <li>
+        <div class="step-content">
+          Ajouter des questions via le bouton <strong>+ Ajouter une question</strong> :
+          <ul style="margin-top:6px; padding-left:18px;">
+            <li><strong>SINGLE</strong> — une seule réponse correcte</li>
+            <li><strong>MULTIPLE</strong> — plusieurs réponses correctes</li>
+            <li><strong>TRUE_FALSE</strong> — Vrai / Faux</li>
+          </ul>
+        </div>
+      </li>
+      <li><div class="step-content">Cliquer sur <strong>Créer l'examen</strong> pour enregistrer.</div></li>
+    </ol>
+  </div>
+
+  <div class="footer">
+    Plateforme QCM ESGIS — Guide d'utilisation v1.0 — 2026
+  </div>
+</div>
+
+<!-- ====================================================
+     PAGE 5 — GUIDE ADMIN (suite) + GUIDE ÉTUDIANT
+====================================================== -->
+<div class="page">
+  <h2 id="gestion-etudiants">3.3 Gestion des étudiants</h2>
+
+  <p>Accessible via <strong>Étudiants</strong> dans la barre de navigation :</p>
+  <table>
+    <tr>
+      <th>Action</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td>Créer un étudiant</td>
+      <td>Remplir le formulaire avec email, nom, prénom et mot de passe</td>
+    </tr>
+    <tr>
+      <td>Modifier un étudiant</td>
+      <td>Cliquer sur l'icône ✏️ dans le tableau des étudiants</td>
+    </tr>
+    <tr>
+      <td>Supprimer un étudiant</td>
+      <td>Cliquer sur l'icône 🗑️ — une confirmation est demandée</td>
+    </tr>
+    <tr>
+      <td>Import CSV</td>
+      <td>Préparer un fichier CSV avec colonnes : <code>email,nom,prenom</code></td>
+    </tr>
+  </table>
+
+  <div class="info-box">
+    ℹ️ <strong>Format CSV d'import :</strong> première ligne = en-tête (<code>email,nom,prenom</code>), une ligne par étudiant. Le mot de passe est généré automatiquement et affiché dans la réponse de l'API.
+  </div>
+
+  <h2 id="resultats">3.4 Consulter les résultats</h2>
+  <ol class="steps">
+    <li><div class="step-content">Aller dans <strong>Examens</strong> et cliquer sur le bouton <strong>Résultats</strong> d'un examen.</div></li>
+    <li><div class="step-content">Visualiser le tableau avec les scores de chaque étudiant, la date, le temps de passage.</div></li>
+    <li><div class="step-content">Utiliser le bouton <strong>Exporter CSV</strong> pour télécharger les résultats au format tableur.</div></li>
+    <li><div class="step-content">Accéder aux <strong>Statistiques</strong> pour voir les graphiques de distribution et le taux de réussite par question.</div></li>
+  </ol>
+
+  <!-- ============ GUIDE ÉTUDIANT ============ -->
+  <div id="etudiant" style="margin-top:20px;">
+    <div class="section-header">
+      <span class="icon">🎓</span>
+      <span>4. Guide étudiant</span>
+    </div>
+
+    <h2 id="connexion">4.1 Connexion et tableau de bord</h2>
+    <ol class="steps">
+      <li><div class="step-content">Ouvrir <strong>http://localhost:5173</strong> dans le navigateur.</div></li>
+      <li><div class="step-content">Saisir l'email et le mot de passe du compte étudiant, puis cliquer sur <strong>Se connecter</strong>.</div></li>
+      <li><div class="step-content">Le tableau de bord affiche tous les examens disponibles avec leur statut : <em>Disponible</em>, <em>À venir</em> ou <em>Terminé</em>.</div></li>
+    </ol>
+
+    <h2 id="passer-examen">4.2 Passer un examen</h2>
+    <ol class="steps">
+      <li><div class="step-content">Cliquer sur le titre d'un examen disponible pour accéder à la <strong>page d'instructions</strong>.</div></li>
+      <li><div class="step-content">Lire les instructions : durée, nombre de questions, tentatives autorisées.</div></li>
+      <li><div class="step-content">Cliquer sur <strong>Commencer l'examen</strong>.</div></li>
+      <li><div class="step-content">Répondre aux questions. Le <strong>timer</strong> en haut à droite affiche le temps restant en rouge lorsqu'il reste moins de 5 minutes.</div></li>
+      <li><div class="step-content">Naviguer entre les questions via la <strong>sidebar gauche</strong> : numéros verts = répondus, gris = non répondus, bordure jaune = marqués pour révision.</div></li>
+      <li><div class="step-content">Cliquer sur <strong>☆ Marquer</strong> pour signaler une question à revoir.</div></li>
+      <li><div class="step-content">Cliquer sur <strong>Soumettre</strong> → confirmer dans le modal récapitulatif.</div></li>
+    </ol>
+
+    <div class="warning-box">
+      ⚠️ <strong>Anti-triche :</strong> Le système détecte les changements d'onglet. Un avertissement s'affiche si vous quittez l'onglet d'examen. Le clic droit et le copier-coller sont désactivés pendant l'examen.
+    </div>
+  </div>
+
+  <div class="footer">
+    Plateforme QCM ESGIS — Guide d'utilisation v1.0 — 2026
+  </div>
+</div>
+
+<!-- ====================================================
+     PAGE 6 — SCÉNARIOS DE TEST
+====================================================== -->
+<div class="page" id="tests">
+  <div class="section-header">
+    <span class="icon">🧪</span>
+    <span>5. Scénarios de test</span>
+  </div>
+
+  <div class="info-box">
+    ℹ️ Cochez chaque case après validation pour suivre votre progression de test.
+  </div>
+
+  <h2 id="test-admin">5.1 Tests côté administrateur</h2>
+  <h3><span class="chip chip-admin">ADMIN</span> Authentification</h3>
+  <ul class="checklist">
+    <li>Se connecter avec <code>admin@test.com</code> / <code>admin123</code> → redirection vers /admin/dashboard</li>
+    <li>Tenter une connexion avec un mot de passe incorrect → message d'erreur affiché</li>
+    <li>Se déconnecter → redirection vers la page de login</li>
+  </ul>
+
+  <h3><span class="chip chip-admin">ADMIN</span> Tableau de bord</h3>
+  <ul class="checklist">
+    <li>Vérifier l'affichage de : 2 examens, 5 étudiants, tentatives, score moyen</li>
+    <li>Vérifier la liste des examens récents et des tentatives récentes</li>
+    <li>Cliquer sur un examen récent → accès aux résultats</li>
+  </ul>
+
+  <h3><span class="chip chip-admin">ADMIN</span> Gestion des examens</h3>
+  <ul class="checklist">
+    <li>Créer un nouvel examen avec au moins 3 questions et 4 réponses chacune</li>
+    <li>Vérifier qu'on ne peut pas enregistrer sans réponse correcte</li>
+    <li>Modifier le titre et la durée d'un examen existant</li>
+    <li>Dupliquer un examen → vérifier que "(copie)" est ajouté</li>
+    <li>Supprimer l'examen dupliqué (confirmation demandée)</li>
+    <li>Assigner un examen à un groupe d'étudiants</li>
+  </ul>
+
+  <h3><span class="chip chip-admin">ADMIN</span> Gestion des étudiants</h3>
+  <ul class="checklist">
+    <li>Créer un nouvel étudiant avec un email unique</li>
+    <li>Tenter de créer un étudiant avec un email déjà utilisé → erreur 409</li>
+    <li>Modifier le nom d'un étudiant existant</li>
+    <li>Supprimer l'étudiant créé</li>
+  </ul>
+
+  <h3><span class="chip chip-admin">ADMIN</span> Gestion des groupes</h3>
+  <ul class="checklist">
+    <li>Créer un groupe avec un nom unique</li>
+    <li>Ajouter plusieurs étudiants au groupe</li>
+    <li>Vérifier que les étudiants du groupe voient l'examen assigné</li>
+    <li>Supprimer le groupe créé</li>
+  </ul>
+
+  <h3><span class="chip chip-admin">ADMIN</span> Résultats et export</h3>
+  <ul class="checklist">
+    <li>Voir les résultats de l'examen "Introduction à la Programmation"</li>
+    <li>Cliquer sur Exporter CSV → fichier téléchargé avec les colonnes correctes</li>
+    <li>Consulter les statistiques → graphiques et taux de réussite par question</li>
+  </ul>
+
+  <h2 id="test-etudiant" style="margin-top:16px;">5.2 Tests côté étudiant</h2>
+  <h3><span class="chip chip-student">ÉTUDIANT</span> Passer un examen complet</h3>
+  <ul class="checklist">
+    <li>Se connecter avec <code>etudiant2@test.com</code> / <code>student123</code></li>
+    <li>Voir les 2 examens disponibles dans le tableau de bord</li>
+    <li>Cliquer sur "Introduction à la Programmation" → page d'instructions affichée</li>
+    <li>Démarrer l'examen → timer affiché, questions chargées</li>
+    <li>Répondre à toutes les questions en naviguant via la sidebar</li>
+    <li>Marquer 2 questions pour révision → bordure jaune visible</li>
+    <li>Vérifier que les réponses sont sauvegardées automatiquement</li>
+    <li>Soumettre → modal de confirmation avec récapitulatif</li>
+    <li>Confirmer → affichage de la page résultats avec le score</li>
+  </ul>
+
+  <h3><span class="chip chip-student">ÉTUDIANT</span> Timer et soumission automatique</h3>
+  <ul class="checklist">
+    <li>Créer un examen de 1 minute (admin) → passer cet examen et attendre la fin</li>
+    <li>Vérifier que l'examen est soumis automatiquement à l'expiration du timer</li>
+    <li>Vérifier que le timer passe en rouge quand il reste moins de 5 minutes</li>
+  </ul>
+
+  <h3><span class="chip chip-student">ÉTUDIANT</span> Historique</h3>
+  <ul class="checklist">
+    <li>Aller dans "Historique" → toutes les tentatives passées sont listées</li>
+    <li>Cliquer sur une tentative → accès au détail des résultats</li>
+  </ul>
+
+  <h2 id="test-securite" style="margin-top:16px;">5.3 Tests de sécurité</h2>
+  <ul class="checklist">
+    <li>Pendant un examen, changer d'onglet → alerte anti-triche affichée</li>
+    <li>Pendant un examen, faire clic droit → menu contextuel bloqué</li>
+    <li>Tenter d'accéder à <code>/admin/dashboard</code> avec un compte étudiant → redirection</li>
+    <li>Tenter d'accéder à <code>/student/dashboard</code> avec un compte admin → redirection</li>
+    <li>Accéder à une URL protégée sans être connecté → redirection vers /login</li>
+    <li>Vérifier que l'examen d'un étudiant ayant atteint le nombre max de tentatives indique "Terminé"</li>
+    <li>Vérifier que le score est calculé côté serveur (impossible à manipuler côté client)</li>
+  </ul>
+
+  <div class="footer">
+    Plateforme QCM ESGIS — Guide d'utilisation v1.0 — 2026
+  </div>
+</div>
+
+<!-- ====================================================
+     PAGE 7 — RÉFÉRENCE API + FAQ
+====================================================== -->
+<div class="page" id="api">
+  <div class="section-header">
+    <span class="icon">🔌</span>
+    <span>6. Référence API</span>
+  </div>
+
+  <p>Toutes les routes sont préfixées par <code>http://localhost:3001/api</code></p>
+
+  <h2>Authentification (public)</h2>
+  <table>
+    <tr><th>Méthode</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td><strong>POST</strong></td><td>/auth/login</td><td>Connexion — retourne access &amp; refresh tokens</td></tr>
+    <tr><td><strong>POST</strong></td><td>/auth/refresh</td><td>Renouveler le token d'accès</td></tr>
+    <tr><td><strong>GET</strong></td><td>/auth/me</td><td>Profil de l'utilisateur connecté</td></tr>
+  </table>
+
+  <h2>Routes admin <span class="chip chip-admin">ADMIN</span></h2>
+  <table>
+    <tr><th>Méthode</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td>GET</td><td>/admin/exams</td><td>Liste tous les examens</td></tr>
+    <tr><td>POST</td><td>/admin/exams</td><td>Créer un examen</td></tr>
+    <tr><td>PUT</td><td>/admin/exams/:id</td><td>Modifier un examen</td></tr>
+    <tr><td>DELETE</td><td>/admin/exams/:id</td><td>Supprimer un examen</td></tr>
+    <tr><td>POST</td><td>/admin/exams/:id/duplicate</td><td>Dupliquer un examen</td></tr>
+    <tr><td>GET</td><td>/admin/exams/:id/questions</td><td>Questions d'un examen</td></tr>
+    <tr><td>POST</td><td>/admin/questions</td><td>Créer une question</td></tr>
+    <tr><td>GET</td><td>/admin/students</td><td>Liste des étudiants</td></tr>
+    <tr><td>POST</td><td>/admin/students</td><td>Créer un étudiant</td></tr>
+    <tr><td>POST</td><td>/admin/students/import</td><td>Import CSV d'étudiants</td></tr>
+    <tr><td>GET</td><td>/admin/groups</td><td>Liste des groupes</td></tr>
+    <tr><td>GET</td><td>/admin/results/:examId</td><td>Résultats d'un examen</td></tr>
+    <tr><td>GET</td><td>/admin/stats/:examId</td><td>Statistiques par question</td></tr>
+    <tr><td>GET</td><td>/admin/export/:examId</td><td>Export CSV des résultats</td></tr>
+    <tr><td>GET</td><td>/admin/stats</td><td>Statistiques du dashboard</td></tr>
+  </table>
+
+  <h2>Routes étudiant <span class="chip chip-student">ÉTUDIANT</span></h2>
+  <table>
+    <tr><th>Méthode</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td>GET</td><td>/student/exams</td><td>Examens disponibles</td></tr>
+    <tr><td>GET</td><td>/student/exams/:id</td><td>Détails / instructions d'un examen</td></tr>
+    <tr><td>POST</td><td>/student/exams/:id/start</td><td>Démarrer un examen</td></tr>
+    <tr><td>POST</td><td>/student/attempts/:id/answer</td><td>Soumettre une réponse</td></tr>
+    <tr><td>POST</td><td>/student/attempts/:id/submit</td><td>Terminer et noter l'examen</td></tr>
+    <tr><td>GET</td><td>/student/attempts</td><td>Historique des tentatives</td></tr>
+    <tr><td>GET</td><td>/student/results/:id</td><td>Résultat d'une tentative</td></tr>
+  </table>
+
+  <!-- ============ FAQ ============ -->
+  <div id="faq" style="margin-top:20px;">
+    <div class="section-header">
+      <span class="icon">❓</span>
+      <span>7. FAQ &amp; Dépannage</span>
+    </div>
+
+    <h2>Problèmes courants</h2>
+    <table>
+      <tr><th>Symptôme</th><th>Cause probable</th><th>Solution</th></tr>
+      <tr>
+        <td>Le backend ne démarre pas</td>
+        <td>Port 3001 déjà occupé</td>
+        <td>Changer <code>PORT</code> dans <code>backend/.env</code></td>
+      </tr>
+      <tr>
+        <td>Erreur "Cannot find module"</td>
+        <td>npm install pas effectué</td>
+        <td>Relancer <code>npm install</code> dans backend/ et frontend/</td>
+      </tr>
+      <tr>
+        <td>La base de données est vide</td>
+        <td>Seed pas exécuté</td>
+        <td>Dans backend/ : <code>npm run seed</code></td>
+      </tr>
+      <tr>
+        <td>Erreur 401 à la connexion</td>
+        <td>Token expiré ou invalide</td>
+        <td>Se déconnecter et se reconnecter</td>
+      </tr>
+      <tr>
+        <td>Le frontend affiche une page blanche</td>
+        <td>Erreur JavaScript</td>
+        <td>Ouvrir la console navigateur (F12) pour voir l'erreur</td>
+      </tr>
+      <tr>
+        <td>L'API retourne 500</td>
+        <td>Erreur serveur</td>
+        <td>Consulter les logs dans le terminal du backend</td>
+      </tr>
+    </table>
+
+    <h2>Variables d'environnement</h2>
+    <div class="credentials" style="font-size:9.5pt;">
+      <div class="label">backend/.env</div>
+      <div class="value">DATABASE_URL="file:./dev.db"</div>
+      <div class="value">JWT_SECRET="votre-secret-jwt"</div>
+      <div class="value">JWT_REFRESH_SECRET="votre-refresh-secret"</div>
+      <div class="value">JWT_EXPIRES_IN="1h"</div>
+      <div class="value">JWT_REFRESH_EXPIRES_IN="7d"</div>
+      <div class="value">PORT=3001</div>
+    </div>
+
+    <div class="success-box">
+      ✅ <strong>Réinitialiser complètement la base de données :</strong><br/>
+      Supprimer le fichier <code>backend/prisma/dev.db</code>, puis relancer :<br/>
+      <code>npx prisma db push &amp;&amp; npm run seed</code>
+    </div>
+  </div>
+
+  <div class="footer">
+    Plateforme QCM ESGIS — Guide d'utilisation v1.0 — 2026 &nbsp;|&nbsp;
+    Stack : React + Node.js + Prisma + SQLite &nbsp;|&nbsp;
+    École Supérieure de Génie Informatique et des Sciences
+  </div>
+</div>
+
+</body>
+</html>

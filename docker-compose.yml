@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+
+  # ── Base de données MySQL ────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: qcm-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret123}
+      MYSQL_DATABASE:      ${MYSQL_DATABASE:-qcm_db}
+      MYSQL_USER:          ${MYSQL_USER:-qcm_user}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD:-qcm_secret123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootsecret123}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - qcm-network
+
+  # ── Backend Node.js / Express ────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qcm-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL:          mysql://${MYSQL_USER:-qcm_user}:${MYSQL_PASSWORD:-qcm_secret123}@db:3306/${MYSQL_DATABASE:-qcm_db}
+      JWT_SECRET:            ${JWT_SECRET:-changeme-jwt-secret-32chars-minimum}
+      JWT_REFRESH_SECRET:    ${JWT_REFRESH_SECRET:-changeme-refresh-secret-32chars}
+      JWT_EXPIRES_IN:        ${JWT_EXPIRES_IN:-1h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      PORT:                  3001
+      SEED_DB:               ${SEED_DB:-false}
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - qcm-network
+
+  # ── Frontend React (nginx) ───────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qcm-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - qcm-network
+
+# ── Volumes & réseau ─────────────────────────────────────────
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  qcm-network:
+    driver: bridge

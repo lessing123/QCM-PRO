@@ -1,0 +1,232 @@
+import { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { examService } from '../../services/examService'
+import Card from '../../components/common/Card'
+import Button from '../../components/common/Button'
+import { ExamResults } from '../../types'
+import toast from 'react-hot-toast'
+
+export default function Results() {
+  const { examId } = useParams()
+  const [results, setResults] = useState<ExamResults | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [sortField, setSortField] = useState<'nom' | 'score' | 'date'>('date')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  useEffect(() => { if (examId) loadResults() }, [examId])
+
+  const loadResults = async () => {
+    try {
+      const data = await examService.getResults(examId!)
+      setResults(data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      const blob = await examService.exportResults(examId!)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `resultats_${results?.exam.titre}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
+      toast.success('Export réussi')
+    } catch {
+      toast.error("Erreur lors de l'export")
+    }
+  }
+
+  const handleExportPdf = async () => {
+    try {
+      const blob = await examService.exportResultsPdf(examId!)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `resultats_${results?.exam.titre}.pdf`
+      a.click()
+      window.URL.revokeObjectURL(url)
+      toast.success('PDF généré')
+    } catch {
+      toast.error("Erreur lors de l'export PDF")
+    }
+  }
+
+  const handleToggleResults = async () => {
+    try {
+      const { exam } = await examService.toggleResults(examId!)
+      setResults(prev =>
+        prev ? { ...prev, exam: { ...prev.exam, resultats_publics: exam.resultats_publics } } : prev
+      )
+      toast.success(exam.resultats_publics ? 'Notes publiées aux étudiants' : 'Notes masquées')
+    } catch {
+      toast.error('Erreur')
+    }
+  }
+
+  const handleSort = (field: 'nom' | 'score' | 'date') => {
+    if (sortField === field) {
+      setSortOrder(o => o === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('desc')
+    }
+  }
+
+  const sorted = [...(results?.attempts || [])].sort((a, b) => {
+    let cmp = 0
+    if (sortField === 'nom')
+      cmp = `${a.user?.nom} ${a.user?.prenom}`.localeCompare(`${b.user?.nom} ${b.user?.prenom}`)
+    else if (sortField === 'score')
+      cmp = (a.score || 0) - (b.score || 0)
+    else
+      cmp = new Date(a.date_fin || a.date_debut).getTime() - new Date(b.date_fin || b.date_debut).getTime()
+    return sortOrder === 'asc' ? cmp : -cmp
+  })
+
+  const SortBtn = ({ field, label }: { field: 'nom' | 'score' | 'date'; label: string }) => (
+    <button
+      onClick={() => handleSort(field)}
+      className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+    >
+      {label}
+      <span className="opacity-50">{sortField === field ? (sortOrder === 'asc' ? '▲' : '▼') : '—'}</span>
+    </button>
+  )
+
+  if (isLoading) return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-6 w-48 skeleton rounded-xl" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-24 rounded-2xl" />)}
+      </div>
+      <div className="skeleton h-80 rounded-2xl" />
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* En-tête */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <Link
+            to="/admin/exams"
+            className="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors mb-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            Retour aux examens
+          </Link>
+          <h1 className="page-title">Résultats : {results?.exam.titre}</h1>
+          <p className="page-subtitle">{sorted.length} tentative{sorted.length !== 1 ? 's' : ''}</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            variant={results?.exam.resultats_publics ? 'success' : 'outline'}
+            onClick={handleToggleResults}
+          >
+            {results?.exam.resultats_publics
+              ? (<><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> Notes publiées</>)
+              : 'Publier les notes'
+            }
+          </Button>
+          <Button variant="outline" onClick={handleExport}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Exporter CSV
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v3.375c0 .621-.504 1.125-1.125 1.125h-12.75A1.125 1.125 0 014.5 17.625V6.375c0-.621.504-1.125 1.125-1.125h4.125L12 7.5h6.375c.621 0 1.125.504 1.125 1.125V14.25z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 12h7.5m-7.5 3h5.25" />
+            </svg>
+            Exporter PDF
+          </Button>
+        </div>
+      </div>
+
+      {/* Avertissement notes non publiées */}
+      {!results?.exam.resultats_publics && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-700/40">
+          <svg className="w-4 h-4 text-warning-600 dark:text-warning-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-sm text-warning-700 dark:text-warning-300">
+            Les notes ne sont pas encore visibles par les étudiants.
+          </p>
+        </div>
+      )}
+
+      {/* Statistiques */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Tentatives', value: results?.stats.total || 0, suffix: '' },
+          { label: 'Moyenne', value: results?.stats.moyenne.toFixed(1) || '0', suffix: '/20' },
+          { label: 'Minimum', value: results?.stats.min || 0, suffix: '/20' },
+          { label: 'Maximum', value: results?.stats.max || 0, suffix: '/20' },
+        ].map(s => (
+          <Card key={s.label} className="text-center">
+            <p className="text-3xl font-bold text-slate-900 dark:text-white">
+              {s.value}<span className="text-base text-slate-400 dark:text-slate-500">{s.suffix}</span>
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{s.label}</p>
+          </Card>
+        ))}
+      </div>
+
+      {/* Tableau */}
+      <Card noPadding>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700/60">
+            <thead className="bg-slate-50 dark:bg-slate-800">
+              <tr>
+                <th className="px-6 py-3 text-left"><SortBtn field="nom" label="Étudiant" /></th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Email</th>
+                <th className="px-6 py-3 text-left"><SortBtn field="score" label="Score" /></th>
+                <th className="px-6 py-3 text-left"><SortBtn field="date" label="Date" /></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700/60">
+              {sorted.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+                    Aucun résultat disponible
+                  </td>
+                </tr>
+              ) : sorted.map(attempt => {
+                const passed = (attempt.score || 0) >= 10
+                return (
+                  <tr key={attempt.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">
+                        {attempt.user?.prenom} {attempt.user?.nom}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                      {attempt.user?.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`badge ${passed ? 'badge-success' : 'badge-danger'}`}>
+                        {attempt.score?.toFixed(1)}/20
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                      {new Date(attempt.date_fin || attempt.date_debut).toLocaleString('fr-FR')}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  )
+}

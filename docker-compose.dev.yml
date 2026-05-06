@@ -1,0 +1,29 @@
+version: '3.9'
+
+# Lance uniquement MySQL pour le développement local.
+# Utilisation : docker-compose -f docker-compose.dev.yml up -d
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: qcm-db-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecret123
+      MYSQL_DATABASE:      qcm_db
+      MYSQL_USER:          qcm_user
+      MYSQL_PASSWORD:      qcm_secret123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootsecret123"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
+volumes:
+  mysql_dev_data:
+    driver: local

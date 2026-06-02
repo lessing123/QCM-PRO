@@ -7,7 +7,7 @@ function accessibleExamWhere(userId: string) {
   const now = new Date()
   return {
     AND: [
-      { OR: [{ groups: { some: { users: { some: { id: userId } } } } }, { groups: { none: {} } }] },
+      { groups: { some: { users: { some: { id: userId } } } } },
       { OR: [{ date_debut: null }, { date_debut: { lte: now } }] },
       { OR: [{ date_fin: null }, { date_fin: { gte: now } }] },
     ],

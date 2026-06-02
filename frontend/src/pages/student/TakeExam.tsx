@@ -75,16 +75,26 @@ export default function TakeExam() {
     }
   }, [])
 
-  // Anti-triche : changement d'onglet - toast non bloquant
+  // Anti-triche : changement d'onglet + perte de focus (autre fenêtre, split-screen, autre écran)
   useEffect(() => {
-    const handler = () => {
-      if (!document.hidden || !examRef.current) return
+    let lastTrigger  = 0
+    let localCount   = 0
+    let active       = false
+
+    // Délai de 2s pour éviter les faux positifs au chargement
+    const activateTimer = setTimeout(() => { active = true }, 2000)
+
+    const trigger = (reason: string) => {
+      if (!active || !examRef.current) return
       if (anticheatRef.current) return
-      const newCount = tabCount + 1
-      setTabCount(newCount)
+      const now = Date.now()
+      if (now - lastTrigger < 1500) return   // anti-doublon 1.5s
+      lastTrigger = now
+
+      localCount += 1
+      setTabCount(localCount)
       emitTabChange(examRef.current.id, examRef.current.titre)
 
-      // Toast non bloquant : l'étudiant peut continuer sans scroller
       toast.custom((t) => (
         <div className={`${t.visible ? 'animate-fade-in' : 'opacity-0'} flex items-start gap-3 max-w-sm w-full bg-white dark:bg-slate-800 border border-warning-300 dark:border-warning-700 rounded-2xl shadow-modal px-4 py-3`}>
           <div className="shrink-0 w-8 h-8 bg-warning-100 dark:bg-warning-900/40 rounded-xl flex items-center justify-center">
@@ -94,10 +104,10 @@ export default function TakeExam() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-warning-800 dark:text-warning-300">
-              Alerte - Changement d'onglet
+              Alerte — {reason === 'blur' ? 'Autre fenêtre détectée' : 'Changement d\'onglet'}
             </p>
             <p className="text-xs text-warning-600 dark:text-warning-400 mt-0.5">
-              Incident signalé au professeur ({newCount} fois)
+              Incident signalé au professeur ({localCount} fois)
             </p>
           </div>
           <button
@@ -111,9 +121,18 @@ export default function TakeExam() {
         </div>
       ), { id: 'tab-warning', duration: 6000, position: 'top-right' })
     }
-    document.addEventListener('visibilitychange', handler)
-    return () => document.removeEventListener('visibilitychange', handler)
-  }, [tabCount])
+
+    const onVisibility = () => { if (document.hidden) trigger('tab') }
+    const onBlur       = () => { trigger('blur') }
+
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      clearTimeout(activateTimer)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [])
 
   // Anti-triche : quitter la page
   useEffect(() => {

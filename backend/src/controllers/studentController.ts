@@ -125,7 +125,12 @@ export const deleteStudent = asyncHandler(async (req: AuthRequest, res: Response
   const { id } = idParamSchema.parse(req.params)
   const existingStudent = await prisma.user.findFirst({ where: { id, role: 'STUDENT' } })
   if (!existingStudent) return res.status(404).json({ error: 'Étudiant non trouvé' })
+
+  // Supprimer dans l'ordre pour respecter les contraintes FK
+  await prisma.studentAnswer.deleteMany({ where: { attempt: { userId: id } } })
+  await prisma.attempt.deleteMany({ where: { userId: id } })
   await prisma.user.delete({ where: { id } })
+
   res.json({ message: 'Étudiant supprimé avec succès' })
 })
 

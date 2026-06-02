@@ -1,194 +1,221 @@
-# QCM - Application de gestion d'examens en ligne
+# QCM - Plateforme de gestion d'examens en ligne
 
-Application web complète de gestion de QCM pour examens en ligne avec une interface d'administration et une interface étudiant.
+Application web de QCM avec deux espaces distincts:
 
-## 🚀 Fonctionnalités
+- un espace d'administration pour créer et piloter les examens
+- un espace étudiant pour passer les examens et suivre les résultats
 
-### Interface Administrateur
-- Dashboard avec statistiques globales
-- CRUD complet des examens
-- Gestion des questions et réponses
-- Gestion des étudiants (création, import CSV)
-- Gestion des groupes
-- Visualisation des résultats par examen
-- Statistiques détaillées par question
-- Export CSV des résultats
+Le projet combine un frontend React moderne, une API Node.js/Express et une base MySQL gérée avec Prisma.
 
-### Interface Étudiant
-- Liste des examens disponibles
-- Instructions avant examen
-- Interface d'examen avec :
-  - Timer visible
-  - Navigation entre questions
-  - Marquage pour révision
-  - Sauvegarde automatique
-  - Détection de changement d'onglet
-  - Confirmation avant soumission
+## Fonctionnalités
 
-### Sécurité
-- Authentification JWT avec refresh token
-- Hash des mots de passe avec bcrypt
-- Validation côté serveur avec Zod
-- Vérification du nombre de tentatives
-- Détection de changement d'onglet (anti-triche)
-- Désactivation du clic droit et copier-coller pendant l'examen
+### Espace administrateur
 
-## 🛠️ Stack Technique
+- création, modification, duplication et suppression d'examens
+- gestion des questions et des réponses
+- prise en charge des types `SINGLE`, `MULTIPLE` et `TRUE_FALSE`
+- import de questions depuis `CSV`, `JSON`, `XLSX` ou `XLS`
+- ajout d'images sur les réponses
+- affectation des examens à des groupes / classes
+- gestion des étudiants
+- import en masse des étudiants
+- réinitialisation des mots de passe étudiants
+- consultation des résultats par examen
+- statistiques détaillées par question
+- export des résultats au format `CSV` et `PDF`
+- notifications en temps réel
+- déblocage manuel d'une tentative bloquée
 
-- **Frontend**: React + Vite + Tailwind CSS + React Router
-- **Backend**: Node.js + Express
-- **Base de données**: SQLite (via Prisma)
-- **Authentification**: JWT + bcrypt
+### Espace étudiant
 
-## 📁 Structure du projet
+- liste des examens disponibles
+- page d'instructions avant le démarrage
+- passage d'examen avec chronomètre
+- navigation libre entre les questions
+- auto-sauvegarde des réponses
+- prise en charge des réponses uniques et multiples
+- historique des tentatives
+- récapitulatif après soumission
+- accès aux résultats publiés
+- changement de mot de passe forcé à la première connexion si nécessaire
 
-```
+### Sécurité et anti-triche
+
+- authentification JWT avec refresh token
+- mots de passe hachés avec `bcrypt`
+- validation des entrées avec `Zod`
+- notifications temps réel via `Socket.IO`
+- détection du changement d'onglet pendant un examen
+- blocage temporaire d'une tentative côté serveur
+- désactivation du clic droit et du copier-coller pendant l'examen
+
+## Stack technique
+
+- Frontend: React 18, Vite, TypeScript, Tailwind CSS, React Router
+- Backend: Node.js, Express, TypeScript
+- ORM: Prisma
+- Base de données: MySQL
+- Temps réel: Socket.IO
+- Outils UI / data: Axios, Recharts, `react-hot-toast`, `xlsx`
+
+## Structure du projet
+
+```text
 QCM/
-├── backend/                 # API REST Node.js
-│   ├── prisma/            # Schéma et seed
-│   ├── src/
-│   │   ├── config/       # Configuration DB
-│   │   ├── controllers/  # Logique métier
-│   │   ├── middlewares/  # Middlewares Express
-│   │   ├── routes/       # Définitions routes
-│   │   ├── services/     # Services
-│   │   └── utils/        # Utilitaires
-│   └── package.json
-│
-└── frontend/              # Application React
-    ├── src/
-    │   ├── components/   # Composants réutilisables
-    │   ├── pages/        # Pages
-    │   ├── hooks/        # Hooks personnalisés
-    │   ├── services/     # Appels API
-    │   ├── context/      # React Context
-    │   └── types/        # Types TypeScript
-    └── package.json
+|-- backend/               # API REST, Prisma, Socket.IO
+|-- frontend/              # Interface React
+|-- docker-compose.yml     # Stack complète en mode proche production
+|-- docker-compose.dev.yml # MySQL seul pour le dev local
+`-- .env.example           # Exemple de variables d'environnement
 ```
 
-## 📋 Prérequis
+## Prérequis
 
-- Node.js version 18+
-- npm ou yarn
+- Node.js 18 ou plus
+- npm
+- MySQL 8 ou plus
+- Docker, si vous souhaitez utiliser les fichiers Compose
 
-## ⚙️ Installation
+## Installation locale
 
-1. **Cloner le projet**
+1. Installez toutes les dépendances depuis la racine du projet:
 
-2. **Installer les dépendances**
 ```bash
-# Installer les dépendances du monorepo
-npm install
-
-# Ou installer chaque partie séparément
-cd backend && npm install
-cd ../frontend && npm install
+npm run install:all
 ```
 
-3. **Configuration de l'environnement**
+2. Configurez le backend.
 
-Dupliquer le fichier `.env.example` en `.env` dans le dossier `backend`:
-```bash
-cp backend/.env.example backend/.env
+Le backend charge son fichier `.env` depuis le dossier `backend/`. Le fichier `.env.example` à la racine sert de modèle pour les variables nécessaires.
+
+Exemple minimal pour `backend/.env`:
+
+```env
+DATABASE_URL="mysql://qcm_user:changeme-db-password@localhost:3306/qcm_db"
+JWT_SECRET="changeme-jwt-secret-minimum-32-caracteres"
+JWT_REFRESH_SECRET="changeme-refresh-secret-minimum-32-chars"
+JWT_EXPIRES_IN="1h"
+JWT_REFRESH_EXPIRES_IN="7d"
+PORT=3001
+FRONTEND_URL="http://localhost:5173"
 ```
 
-4. **Initialiser la base de données**
+3. Initialisez le schéma Prisma.
+
 ```bash
 cd backend
 npx prisma generate
 npx prisma db push
 ```
 
-5. **Charger les données de test (optionnel)**
+4. Chargez les données de démonstration si besoin.
+
 ```bash
-cd backend
 npm run seed
 ```
 
-## 🚦 Lancement
+Le seed crée notamment:
 
-### Mode développement (les deux en même temps)
+- un administrateur de test
+- cinq étudiants de test
+- un groupe d'exemple
+- deux examens d'exemple avec questions et réponses
+
+## Lancement en local
+
+### Tout lancer d'un coup
+
 ```bash
 npm run dev
 ```
 
+Le frontend démarre sur `http://localhost:5173` et l'API sur `http://localhost:3001`.
+
 ### Backend seul
+
 ```bash
 cd backend
 npm run dev
-# API disponible sur http://localhost:3001
 ```
 
 ### Frontend seul
+
 ```bash
 cd frontend
 npm run dev
-# Application disponible sur http://localhost:5173
 ```
 
-## 🔑 Comptes de test
+Le frontend utilise par défaut le proxy Vite vers `/api`. Si vous déployez le backend ailleurs, vous pouvez définir `VITE_API_URL=http://localhost:3001/api`.
 
-Après avoir exécuté le seed :
+## Docker
+
+### MySQL uniquement pour le développement
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+Ce fichier démarre seulement MySQL sur le port `3306`.
+
+### Stack complète
+
+```bash
+docker compose up --build
+```
+
+Le frontend est exposé sur le port `80`. Le backend et la base de données restent internes au réseau Docker.
+
+Pensez à renseigner les variables attendues par `docker-compose.yml` dans un fichier `.env` à la racine.
+
+## Comptes de test
+
+Après le seed:
 
 | Rôle | Email | Mot de passe |
 |------|-------|--------------|
-| Admin | admin@test.com | admin123 |
-| Étudiant | etudiant1@test.com | student123 |
-| Étudiant | etudiant2@test.com | student123 |
-| Étudiant | etudiant3@test.com | student123 |
-| Étudiant | etudiant4@test.com | student123 |
-| Étudiant | etudiant5@test.com | student123 |
+| Admin | `admin@test.com` | `admin123` |
+| Étudiant | `etudiant1@test.com` | `student123` |
+| Étudiant | `etudiant2@test.com` | `student123` |
+| Étudiant | `etudiant3@test.com` | `student123` |
+| Étudiant | `etudiant4@test.com` | `student123` |
+| Étudiant | `etudiant5@test.com` | `student123` |
 
-## 📝 Variables d'environnement
+## API principale
 
-### Backend (.env)
-```env
-DATABASE_URL="file:./dev.db"
-JWT_SECRET="votre-secret-jwt-tres-securise-a-changer-en-production"
-JWT_REFRESH_SECRET="votre-refresh-secret-encore-plus-securise"
-JWT_EXPIRES_IN="1h"
-JWT_REFRESH_EXPIRES_IN="7d"
-PORT=3001
-```
+- Auth: `POST /api/auth/login`, `POST /api/auth/refresh`, `GET /api/auth/me`, `POST /api/auth/change-password`
+- Admin: `GET/POST/PUT/DELETE /api/admin/exams`, `GET /api/admin/exams/:id/questions`, `GET /api/admin/results/:examId`, `GET /api/admin/stats/:examId`, `GET /api/admin/export/:examId`, `GET /api/admin/export/:examId/pdf`
+- Étudiant: `GET /api/student/exams`, `POST /api/student/exams/:id/start`, `POST /api/student/attempts/:id/answer`, `POST /api/student/attempts/:id/submit`, `GET /api/student/results/:id`
+- Upload: `POST /api/upload/image`
+- Santé: `GET /api/health`
 
-### Frontend (.env)
-```env
-VITE_API_URL="http://localhost:3001/api"
-```
+## Scripts utiles
 
-## 📚 Documentation API
+### Racine
 
-Une fois le backend lancé, vous pouvez accéder à la documentation Swagger (si implémentée) ou tester les endpoints avec Postman.
+- `npm run dev` - lance backend et frontend
+- `npm run dev:backend` - lance seulement le backend
+- `npm run dev:frontend` - lance seulement le frontend
+- `npm run install:all` - installe toutes les dépendances
+- `npm run build` - build backend et frontend
+- `npm run seed` - lance le seed du backend
 
-### Endpoints principaux
+### Backend
 
-#### Auth
-- `POST /api/auth/login` - Connexion
-- `POST /api/auth/register` - Inscription (admin)
-- `GET /api/auth/me` - Profil utilisateur
+- `npm run dev` - serveur Express en mode watch
+- `npm run build` - compilation TypeScript
+- `npm run start` - lance le build compilé
+- `npm run seed` - seed de la base
+- `npm run dev:push` - `prisma db push` pour le schéma de dev
+- `npm run dev:generate` - génération du client Prisma pour le schéma de dev
 
-#### Admin
-- `GET /api/admin/exams` - Liste des examens
-- `POST /api/admin/exams` - Créer un examen
-- `GET /api/admin/students` - Liste des étudiants
-- `POST /api/admin/students/import` - Importer des étudiants
-- `GET /api/admin/results/:examId` - Résultats d'un examen
-- `GET /api/admin/stats/:examId` - Statistiques
+### Frontend
 
-#### Étudiant
-- `GET /api/student/exams` - Examens disponibles
-- `POST /api/student/exams/:id/start` - Démarrer un examen
-- `POST /api/student/attempts/:id/answer` - Soumettre une réponse
-- `POST /api/student/attempts/:id/submit` - Terminer l'examen
+- `npm run dev` - serveur Vite
+- `npm run build` - build de production
+- `npm run preview` - prévisualisation du build
 
-## 🎨 Design
+## Notes
 
-- Interface moderne et épurée avec Tailwind CSS
-- Palette de couleurs professionnelle
-- Composants réutilisables
-- Responsive (mobile, tablette, desktop)
-- Toasts pour les notifications
-
-## 📄 License
-
-MIT
+- Les guides administrateur et étudiant sont aussi disponibles directement dans l'application.
+- Les fichiers uploadés sont servis depuis `/uploads`.
+- L'application s'appuie sur des événements Socket.IO pour les notifications et le suivi anti-triche.

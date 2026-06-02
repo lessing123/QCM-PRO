@@ -71,6 +71,7 @@ export default function StudentList() {
   const [importModal, setImportModal] = useState(false)
   const [importData, setImportData]   = useState('')
   const [importGroupId, setImportGroupId] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadStudents()
@@ -174,6 +175,38 @@ export default function StudentList() {
     }
   }
 
+  const allFilteredSelected = filtered.length > 0 && filtered.every(s => selectedIds.has(s.id))
+
+  const handleSelectAll = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (allFilteredSelected) filtered.forEach(s => next.delete(s.id))
+      else filtered.forEach(s => next.add(s.id))
+      return next
+    })
+  }
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Supprimer ${selectedIds.size} étudiant(s) sélectionné(s) ? Cette action est irréversible.`)) return
+    try {
+      await Promise.all([...selectedIds].map(id => studentService.deleteStudent(id)))
+      toast.success(`${selectedIds.size} étudiant(s) supprimé(s)`)
+      setSelectedIds(new Set())
+      loadStudents()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erreur lors de la suppression')
+    }
+  }
+
   const handleImport = async () => {
     try {
       const lines = importData.trim().split('\n')
@@ -215,6 +248,18 @@ export default function StudentList() {
           <p className="page-subtitle">{students.length} étudiant{students.length > 1 ? 's' : ''} inscrit{students.length > 1 ? 's' : ''}</p>
         </div>
         <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              onClick={handleBulkDelete}
+              className="bg-danger-500 hover:bg-danger-600 text-white border-0"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+              Supprimer ({selectedIds.size})
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setImportModal(true)}>
             Importer CSV
           </Button>
@@ -254,6 +299,14 @@ export default function StudentList() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700/60">
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr>
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={handleSelectAll}
+                    className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  />
+                </th>
                 {['Étudiant', 'Mot de passe', 'Classes', 'Statut', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     {h}
@@ -264,7 +317,7 @@ export default function StudentList() {
             <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700/60">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
                     Aucun étudiant trouvé
                   </td>
                 </tr>
@@ -272,9 +325,18 @@ export default function StudentList() {
                 const showPwd = visiblePwd.has(student.id)
                 const hasTempPwd = !!(student as any).password_temp
                 const mustChange = !!(student as any).must_change_password
+                const isSelected = selectedIds.has(student.id)
 
                 return (
-                  <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <tr key={student.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                    <td className="px-4 py-4 w-10">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleSelectOne(student.id)}
+                        className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                      />
+                    </td>
                     {/* Nom + statut en ligne */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2.5">

@@ -4,7 +4,7 @@ let socket: Socket | null = null
 
 const SOCKET_URL = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace('/api', '')
-  : 'http://localhost:3001'
+  : window.location.origin
 
 export function connectSocket(token: string): Socket {
   if (socket?.connected) return socket

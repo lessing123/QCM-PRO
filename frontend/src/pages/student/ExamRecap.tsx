@@ -110,19 +110,7 @@ export default function ExamRecap() {
                   </div>
                   {resultats_publics && (
                     <span className={`badge shrink-0 ${isCorrect ? 'badge-success' : !answered ? 'badge-neutral' : 'badge-danger'}`}>
-                      {isCorrect ? (
-                        <span className="flex items-center gap-1">
-                          <IconCheck />
-                          Correct
-                        </span>
-                      ) : !answered ? (
-                        'Sans réponse'
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <IconCross />
-                          Incorrect
-                        </span>
-                      )}
+                      {isCorrect ? 'Correct' : !answered ? 'Sans réponse' : 'Incorrect'}
                     </span>
                   )}
                 </div>
@@ -135,12 +123,12 @@ export default function ExamRecap() {
                     const isAnswerCorrect = resultats_publics ? answer.est_correcte : false
 
                     let style = 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/40'
-                    if (isChosen && !resultats_publics) {
-                      style = 'border-primary-400 bg-primary-50 dark:border-primary-600 dark:bg-primary-900/20'
-                    } else if (resultats_publics && isAnswerCorrect) {
+                    if (resultats_publics && isAnswerCorrect) {
                       style = 'border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20'
                     } else if (resultats_publics && isChosen && !isAnswerCorrect) {
                       style = 'border-rose-400 bg-rose-50 dark:border-rose-600 dark:bg-rose-900/20'
+                    } else if (isChosen) {
+                      style = 'border-primary-400 bg-primary-50 dark:border-primary-600 dark:bg-primary-900/20'
                     }
 
                     return (
@@ -149,15 +137,10 @@ export default function ExamRecap() {
                           {isChosen && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                         </div>
                         {answer.image_url && (
-                          <img
-                            src={resolveMediaUrl(answer.image_url)}
-                            alt="réponse"
-                            className="h-12 w-auto rounded-lg border border-slate-200 object-contain dark:border-slate-700"
-                          />
+                          <img src={resolveMediaUrl(answer.image_url)} alt="réponse"
+                            className="h-12 w-auto rounded-lg border border-slate-200 object-contain dark:border-slate-700" />
                         )}
                         <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">{answer.texte}</span>
-                        {resultats_publics && isAnswerCorrect && <IconCheck className="text-emerald-600 dark:text-emerald-400" />}
-                        {resultats_publics && isChosen && !isAnswerCorrect && <IconCross className="text-rose-600 dark:text-rose-400" />}
                       </div>
                     )
                   })}
@@ -187,13 +170,6 @@ function IconBack() {
   return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
 }
 
-function IconCheck({ className = 'text-emerald-600 dark:text-emerald-400' }: { className?: string }) {
-  return <svg className={`h-3.5 w-3.5 ${className}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="m5 10.5 3 3 7-7" /></svg>
-}
-
-function IconCross({ className = 'text-rose-600 dark:text-rose-400' }: { className?: string }) {
-  return <svg className={`h-3.5 w-3.5 ${className}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="m5 5 10 10M15 5 5 15" /></svg>
-}
 
 function IconClock() {
   return <svg className="mx-auto h-6 w-6 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>

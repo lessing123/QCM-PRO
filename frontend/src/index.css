@@ -8,8 +8,25 @@
    BASE
    ============================================================ */
 @layer base {
-  :root { color-scheme: light; }
-  .dark  { color-scheme: dark; }
+  :root {
+    color-scheme: light;
+    /* Surfaces chaudes mode clair */
+    --surface-page:    #eae6e0;
+    --surface-card:    #f7f5f1;
+    --surface-raised:  #f2efe9;
+    --surface-border:  #dedad2;
+    --text-base:       #1c1917;
+    --text-muted:      #6b6560;
+  }
+  .dark {
+    color-scheme: dark;
+    --surface-page:   #020617;
+    --surface-card:   #0f172a;
+    --surface-raised: #1e293b;
+    --surface-border: #1e293b;
+    --text-base:      #f1f5f9;
+    --text-muted:     #94a3b8;
+  }
 
   html {
     -webkit-font-smoothing: antialiased;
@@ -17,14 +34,16 @@
   }
 
   body {
-    @apply text-slate-900 font-sans;
-    background-color: rgb(226 232 240);
-    background-image: linear-gradient(180deg, rgb(241 245 249) 0%, rgb(226 232 240) 100%);
+    @apply font-sans;
+    color: var(--text-base);
+    background-color: var(--surface-page);
+    background-image: linear-gradient(160deg, #f0ece5 0%, #e4dfd8 100%);
     transition: background-color 0.2s, color 0.2s;
   }
   .dark body {
-    @apply bg-slate-950 text-slate-100;
+    background-color: #020617;
     background-image: none;
+    color: #f1f5f9;
   }
 
   .font-display {
@@ -82,6 +101,22 @@
   /* Exam mode anti-triche */
   .exam-mode { user-select: none; -webkit-user-select: none; }
 }
+
+/* ============================================================
+   SURFACES CHAUDES — mode clair uniquement
+   Remplace le blanc pur et les slate froids par des tons pierre doux
+   ============================================================ */
+:root:not(.dark) .bg-white          { background-color: var(--surface-card) !important; }
+:root:not(.dark) .bg-slate-50       { background-color: #f2efe9 !important; }
+:root:not(.dark) .bg-slate-100      { background-color: #e9e5de !important; }
+
+:root:not(.dark) .border-slate-200  { border-color: var(--surface-border) !important; }
+:root:not(.dark) .border-slate-100  { border-color: #e5e0d8 !important; }
+
+:root:not(.dark) .text-slate-900    { color: var(--text-base) !important; }
+:root:not(.dark) .text-slate-600    { color: #57534e !important; }
+:root:not(.dark) .text-slate-500    { color: #78716c !important; }
+:root:not(.dark) .text-slate-400    { color: #a8a29e !important; }
 
 /* ============================================================
    UTILITIES

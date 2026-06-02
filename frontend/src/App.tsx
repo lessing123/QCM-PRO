@@ -10,12 +10,15 @@ import StudentList from './pages/admin/StudentList'
 import GroupList from './pages/admin/GroupList'
 import Results from './pages/admin/Results'
 import Stats from './pages/admin/Stats'
+import AdminSettings from './pages/admin/AdminSettings'
+import AdminGuide from './pages/admin/AdminGuide'
 import StudentDashboard from './pages/student/StudentDashboard'
 import ExamInstructions from './pages/student/ExamInstructions'
 import TakeExam from './pages/student/TakeExam'
 import ExamRecap from './pages/student/ExamRecap'
 import ExamResult from './pages/student/ExamResult'
 import History from './pages/student/History'
+import StudentGuide from './pages/student/StudentGuide'
 import Layout from './components/layout/Layout'
 
 function ProtectedRoute({ children, allowedRole }: { children: ReactNode; allowedRole?: 'ADMIN' | 'STUDENT' }) {
@@ -67,6 +70,8 @@ export default function App() {
         <Route path="groups" element={<Navigate to="/admin/classes" replace />} />
         <Route path="results/:examId" element={<Results />} />
         <Route path="stats/:examId" element={<Stats />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="guide" element={<AdminGuide />} />
       </Route>
 
       {/* Etudiant */}
@@ -78,6 +83,7 @@ export default function App() {
         <Route path="recap/:attemptId" element={<ExamRecap />} />
         <Route path="results/:attemptId" element={<ExamResult />} />
         <Route path="history" element={<History />} />
+        <Route path="guide" element={<StudentGuide />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

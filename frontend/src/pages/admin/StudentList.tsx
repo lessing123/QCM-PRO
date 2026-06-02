@@ -35,6 +35,14 @@ function EyeIcon({ show }: { show: boolean }) {
       </svg>
 }
 
+function IconCopy() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+    </svg>
+  )
+}
+
 // ── Page principale ────────────────────────────────────────────────
 
 export default function StudentList() {
@@ -43,9 +51,10 @@ export default function StudentList() {
   const [isLoading, setIsLoading]     = useState(true)
   const [search, setSearch]           = useState('')
   const [visiblePwd, setVisiblePwd]   = useState<Set<string>>(new Set())
-  const [resetModal, setResetModal]   = useState<{ open: boolean; student: User | null; newPwd: string; showPwd: boolean }>({
-    open: false, student: null, newPwd: DEFAULT_PASSWORD, showPwd: false,
-  })
+  const [pwdModal, setPwdModal] = useState<{
+    open: boolean; student: User | null
+    newPwd: string; showCurrent: boolean; showNew: boolean; isSaving: boolean
+  }>({ open: false, student: null, newPwd: '', showCurrent: false, showNew: false, isSaving: false })
   const [studentModal, setStudentModal] = useState<{
     isOpen: boolean
     student: { email: string; nom: string; prenom: string; password: string }
@@ -141,15 +150,26 @@ export default function StudentList() {
     }
   }
 
-  const handleReset = async () => {
-    if (!resetModal.student) return
+  const closePwdModal = () => setPwdModal({ open: false, student: null, newPwd: '', showCurrent: false, showNew: false, isSaving: false })
+
+  const handleSetPassword = async (password: string) => {
+    if (!pwdModal.student) return
+    setPwdModal(m => ({ ...m, isSaving: true }))
     try {
-      const { password } = await studentService.resetPassword(resetModal.student.id, resetModal.newPwd)
-      toast.success(`Mot de passe réinitialisé : ${password}`)
+      await studentService.resetPassword(pwdModal.student.id, password)
+      toast.success('Mot de passe mis à jour')
       loadStudents()
-      setResetModal({ open: false, student: null, newPwd: DEFAULT_PASSWORD, showPwd: false })
+      // Rester ouvert et afficher le nouveau mot de passe dans la section "actuel"
+      setPwdModal(m => ({
+        ...m,
+        isSaving: false,
+        newPwd: '',
+        showCurrent: true,
+        student: m.student ? { ...m.student, password_temp: password, must_change_password: true } as any : null,
+      }))
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Erreur')
+      setPwdModal(m => ({ ...m, isSaving: false }))
     }
   }
 
@@ -328,8 +348,8 @@ export default function StudentList() {
                         </Button>
                         <Button
                           variant="ghost" size="sm"
-                          title="Réinitialiser le mot de passe"
-                          onClick={() => setResetModal({ open: true, student, newPwd: DEFAULT_PASSWORD, showPwd: false })}
+                          title="Gérer le mot de passe"
+                          onClick={() => setPwdModal({ open: true, student, newPwd: '', showCurrent: false, showNew: false, isSaving: false })}
                           className="text-warning-600 dark:text-warning-400 hover:bg-warning-50 dark:hover:bg-warning-900/20"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -454,51 +474,105 @@ export default function StudentList() {
         </form>
       </Modal>
 
-      {/* ── Modal réinitialiser mot de passe ───────────────────── */}
+      {/* ── Modal mot de passe unifié ──────────────────────────── */}
       <Modal
-        isOpen={resetModal.open}
-        onClose={() => setResetModal({ open: false, student: null, newPwd: DEFAULT_PASSWORD, showPwd: false })}
-        title="Réinitialiser le mot de passe"
-        description={`${resetModal.student?.prenom} ${resetModal.student?.nom}`}
+        isOpen={pwdModal.open}
+        onClose={closePwdModal}
+        title="Mot de passe"
+        description={`${pwdModal.student?.prenom} ${pwdModal.student?.nom}`}
         size="sm"
-        footer={
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setResetModal({ open: false, student: null, newPwd: DEFAULT_PASSWORD, showPwd: false })}>
-              Annuler
-            </Button>
-            <Button variant="danger" onClick={handleReset}>
-              Réinitialiser
-            </Button>
-          </div>
-        }
+        footer={<Button variant="outline" onClick={closePwdModal}>Fermer</Button>}
       >
-        <div className="space-y-4">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            L'étudiant devra modifier ce mot de passe à sa prochaine connexion.
-          </p>
-          <div className="relative">
-            <Input
-              label="Nouveau mot de passe"
-              type={resetModal.showPwd ? 'text' : 'password'}
-              value={resetModal.newPwd}
-              onChange={e => setResetModal(m => ({ ...m, newPwd: e.target.value }))}
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-              onClick={() => setResetModal(m => ({ ...m, showPwd: !m.showPwd }))}
-              title={resetModal.showPwd ? 'Masquer' : 'Afficher'}
-            >
-              <EyeIcon show={resetModal.showPwd} />
-            </button>
+        <div className="space-y-5">
+
+          {/* ── 1. Mot de passe actuel ── */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Mot de passe actuel</p>
+            {(pwdModal.student as any)?.password_temp ? (
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm font-mono text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2">
+                  {pwdModal.showCurrent ? (pwdModal.student as any).password_temp : '••••••••••'}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => setPwdModal(m => ({ ...m, showCurrent: !m.showCurrent }))}
+                  className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  title={pwdModal.showCurrent ? 'Masquer' : 'Voir'}
+                >
+                  <EyeIcon show={pwdModal.showCurrent} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText((pwdModal.student as any).password_temp)
+                    toast.success('Copié !')
+                  }}
+                  className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  title="Copier"
+                >
+                  <IconCopy />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm">
+                <svg className="w-4 h-4 text-success-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                </svg>
+                <span className="text-success-600 dark:text-success-400 font-medium">Modifié par l'étudiant</span>
+              </div>
+            )}
+            {(pwdModal.student as any)?.must_change_password && (
+              <p className="text-xs text-warning-600 dark:text-warning-400">
+                ⚠ L'étudiant n'a pas encore changé ce mot de passe.
+              </p>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={() => setResetModal(m => ({ ...m, newPwd: DEFAULT_PASSWORD }))}
-            className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
-          >
-            Utiliser le mot de passe standard ({DEFAULT_PASSWORD})
-          </button>
+
+          {/* ── 2. Définir un nouveau mot de passe ── */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Définir un nouveau mot de passe</p>
+            <div className="relative">
+              <Input
+                label=""
+                type={pwdModal.showNew ? 'text' : 'password'}
+                value={pwdModal.newPwd}
+                onChange={e => setPwdModal(m => ({ ...m, newPwd: e.target.value }))}
+                placeholder="Nouveau mot de passe..."
+              />
+              <button
+                type="button"
+                onClick={() => setPwdModal(m => ({ ...m, showNew: !m.showNew }))}
+                className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <EyeIcon show={pwdModal.showNew} />
+              </button>
+            </div>
+            <Button
+              className="w-full"
+              isLoading={pwdModal.isSaving}
+              disabled={!pwdModal.newPwd.trim()}
+              onClick={() => handleSetPassword(pwdModal.newPwd)}
+            >
+              Appliquer
+            </Button>
+          </div>
+
+          {/* ── 3. Réinitialiser au défaut ── */}
+          <div className="rounded-xl border border-warning-200 dark:border-warning-800/40 bg-warning-50 dark:bg-warning-900/10 p-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-warning-600 dark:text-warning-400">Réinitialiser</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Remettre le mot de passe par défaut&nbsp;: <code className="font-mono font-bold">{DEFAULT_PASSWORD}</code>
+            </p>
+            <Button
+              variant="outline"
+              className="w-full border-warning-300 text-warning-700 hover:bg-warning-100 dark:border-warning-700 dark:text-warning-400"
+              isLoading={pwdModal.isSaving}
+              onClick={() => handleSetPassword(DEFAULT_PASSWORD)}
+            >
+              Réinitialiser au mot de passe par défaut
+            </Button>
+          </div>
+
         </div>
       </Modal>
 

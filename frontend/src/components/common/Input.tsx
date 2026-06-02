@@ -5,10 +5,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string
   hint?: string
   leftIcon?: ReactNode
+  rightIcon?: ReactNode
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className = '', label, error, hint, id, leftIcon, ...props }, ref) => {
+  ({ className = '', label, error, hint, id, leftIcon, rightIcon, ...props }, ref) => {
     return (
       <div className="w-full"> {label && (
           <label
@@ -19,6 +20,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         <div className="relative"> {leftIcon && (
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500"> {leftIcon}
             </div> )}
+          {rightIcon && (
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+              {rightIcon}
+            </div>
+          )}
           <input
             ref={ref}
             id={id}
@@ -33,6 +39,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                 ? 'border-danger-400 dark:border-danger-500 focus:ring-danger-400/30 focus:border-danger-400'
                 : 'border-slate-300 dark:border-slate-600',
               leftIcon ? 'pl-10' : '',
+              rightIcon ? 'pr-10' : '',
               'disabled:opacity-50 disabled:cursor-not-allowed',
               className,
             ].join(' ')}

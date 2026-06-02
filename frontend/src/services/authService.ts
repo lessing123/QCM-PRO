@@ -40,4 +40,10 @@ export const authService = {
     const response = await api.post('/auth/refresh', { refreshToken })
     return response.data
   },
+
+  // Changer son mot de passe
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    const response = await api.post('/auth/change-password', { currentPassword, newPassword })
+    return response.data
+  },
 }

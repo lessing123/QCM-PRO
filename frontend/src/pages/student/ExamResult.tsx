@@ -55,6 +55,7 @@ export default function ExamResult() {
 
   const passed = (attempt.score || 0) >= 10
   const scorePercent = Math.round(((attempt.score || 0) / 20) * 100)
+  const resultats_publics = attempt.exam?.resultats_publics ?? false
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -115,7 +116,7 @@ export default function ExamResult() {
         </div>
       </Card>
 
-      <Card title="Détail des réponses">
+      <Card title="Récapitulatif de vos réponses">
         <div className="space-y-5">
           {attempt.exam?.questions?.map((question, index) => {
             const studentAnswer = attempt.studentAnswers?.find(sa => sa.questionId === question.id)
@@ -132,36 +133,45 @@ export default function ExamResult() {
                     </div>
                     <p className="mt-2 leading-relaxed text-slate-900 dark:text-slate-100">{question.enonce}</p>
                   </div>
-                  <div
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+                  {resultats_publics && (
+                    <div className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
                       isCorrect
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-300'
                         : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/40 dark:bg-rose-900/20 dark:text-rose-300'
-                    }`}
-                  >
-                    {isCorrect ? <IconCheck /> : <IconCross />}
-                    {isCorrect ? 'Correct' : 'Incorrect'}
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  {studentAnswer?.answer && (
-                    <div className={`rounded-2xl border p-3 text-sm ${isCorrect ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800/40 dark:bg-emerald-900/15' : 'border-rose-200 bg-rose-50 dark:border-rose-800/40 dark:bg-rose-900/15'}`}>
-                      <span className={`font-semibold ${isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
-                        Votre réponse:
-                      </span>{' '}
-                      <span className={isCorrect ? 'text-emerald-700 dark:text-emerald-200' : 'text-rose-700 dark:text-rose-200'}>
-                        {studentAnswer.answer.texte}
-                      </span>
+                    }`}>
+                      {isCorrect ? <IconCheck /> : <IconCross />}
+                      {isCorrect ? 'Correct' : 'Incorrect'}
                     </div>
                   )}
+                </div>
 
-                  {!isCorrect && question.answers?.filter(a => a.est_correcte).map(correct => (
-                    <div
-                      key={correct.id}
-                      className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-800/40 dark:bg-emerald-900/15"
-                    >
-                      <span className="font-semibold text-emerald-700 dark:text-emerald-300">Bonne réponse:</span>{' '}
+                <div className="mt-3 space-y-2">
+                  {studentAnswer?.answer ? (
+                    <div className={`rounded-2xl border p-3 text-sm ${
+                      !resultats_publics
+                        ? 'border-primary-200 bg-primary-50 dark:border-primary-800/40 dark:bg-primary-900/15'
+                        : isCorrect
+                          ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800/40 dark:bg-emerald-900/15'
+                          : 'border-rose-200 bg-rose-50 dark:border-rose-800/40 dark:bg-rose-900/15'
+                    }`}>
+                      <span className={`font-semibold ${
+                        !resultats_publics ? 'text-primary-700 dark:text-primary-300'
+                          : isCorrect ? 'text-emerald-700 dark:text-emerald-300'
+                          : 'text-rose-700 dark:text-rose-300'
+                      }`}>Votre réponse :</span>{' '}
+                      <span className={
+                        !resultats_publics ? 'text-primary-800 dark:text-primary-200'
+                          : isCorrect ? 'text-emerald-700 dark:text-emerald-200'
+                          : 'text-rose-700 dark:text-rose-200'
+                      }>{studentAnswer.answer.texte}</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs italic text-slate-400 dark:text-slate-500">Aucune réponse fournie</p>
+                  )}
+
+                  {resultats_publics && !isCorrect && question.answers?.filter(a => a.est_correcte).map(correct => (
+                    <div key={correct.id} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-800/40 dark:bg-emerald-900/15">
+                      <span className="font-semibold text-emerald-700 dark:text-emerald-300">Bonne réponse :</span>{' '}
                       <span className="text-emerald-700 dark:text-emerald-200">{correct.texte}</span>
                     </div>
                   ))}
@@ -169,12 +179,8 @@ export default function ExamResult() {
                   {question.answers?.some(a => a.image_url) && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {question.answers.filter(a => a.image_url).map(answer => (
-                        <img
-                          key={answer.id}
-                          src={resolveMediaUrl(answer.image_url)}
-                          alt=""
-                          className="h-14 w-auto rounded-xl border border-slate-200 object-contain dark:border-slate-700"
-                        />
+                        <img key={answer.id} src={resolveMediaUrl(answer.image_url)} alt=""
+                          className="h-14 w-auto rounded-xl border border-slate-200 object-contain dark:border-slate-700" />
                       ))}
                     </div>
                   )}

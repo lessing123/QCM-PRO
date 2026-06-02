@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react'
+import * as XLSX from 'xlsx'
 import { useNavigate, useParams } from 'react-router-dom'
 import { examService } from '../../services/examService'
 import { studentService } from '../../services/studentService'
@@ -330,26 +331,56 @@ export default function ExamForm() {
     return answers
   }
 
+  const parseExcelRows = (rows: any[]): any[] => rows
+
   const handleQuestionsImport = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     try {
-      const text = await file.text()
       const fileName = file.name.toLowerCase()
+      const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
       const isCsv = fileName.endsWith('.csv') || file.type.includes('csv')
       let imported: QuestionFormData[] = []
 
-      if (isCsv) {
+      if (isExcel) {
+        const buffer = await file.arrayBuffer()
+        const workbook = XLSX.read(buffer, { type: 'array' })
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        const rows = XLSX.utils.sheet_to_json<any>(sheet, { defval: '' })
+
+        if (rows.length === 0) throw new Error('Le fichier Excel est vide')
+
+        imported = parseExcelRows(rows).map((row: any, index: number) => ({
+          enonce: String(row.enonce ?? row.question ?? row.Enonce ?? row.Question ?? '').trim(),
+          type: (['SINGLE', 'MULTIPLE', 'TRUE_FALSE'].includes(String(row.type ?? row.Type ?? '').trim().toUpperCase())
+            ? String(row.type ?? row.Type ?? '').trim().toUpperCase()
+            : 'SINGLE') as QuestionType,
+          points: Number(row.points ?? row.Points ?? row.point ?? 0) > 0
+            ? Number(row.points ?? row.Points ?? row.point)
+            : 1,
+          ordre: Number(row.ordre ?? row.Ordre ?? row.order ?? 0) > 0
+            ? Number(row.ordre ?? row.Ordre ?? row.order)
+            : questions.length + index + 1,
+          answers: parseCsvAnswers(
+            String(row.answers ?? row.reponses ?? row['réponses'] ?? row.Reponses ?? row.Answers ?? ''),
+            index + 1,
+          ),
+        }))
+      } else if (isCsv) {
+        const text = await file.text()
         const rows = parseCsvQuestions(text)
         imported = rows.map((row: any, index: number) => ({
           enonce: String(row.enonce ?? row.question ?? '').trim(),
-          type: (['SINGLE', 'MULTIPLE', 'TRUE_FALSE'].includes(String(row.type ?? '').trim().toUpperCase()) ? String(row.type ?? '').trim().toUpperCase() : 'SINGLE') as QuestionType,
+          type: (['SINGLE', 'MULTIPLE', 'TRUE_FALSE'].includes(String(row.type ?? '').trim().toUpperCase())
+            ? String(row.type ?? '').trim().toUpperCase()
+            : 'SINGLE') as QuestionType,
           points: Number(row.points ?? row.point) > 0 ? Number(row.points ?? row.point) : 1,
           ordre: Number(row.ordre ?? row.order) > 0 ? Number(row.ordre ?? row.order) : questions.length + index + 1,
           answers: parseCsvAnswers(String(row.answers ?? row.reponses ?? row['réponses'] ?? ''), index + 1),
         }))
       } else {
+        const text = await file.text()
         const raw = JSON.parse(text)
         const list = Array.isArray(raw) ? raw : Array.isArray(raw.questions) ? raw.questions : null
 
@@ -379,7 +410,7 @@ export default function ExamForm() {
       <input
         ref={questionImportRef}
         type="file"
-        accept=".json,.csv,application/json,text/csv"
+        accept=".json,.csv,.xlsx,.xls,application/json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
         className="hidden"
         onChange={handleQuestionsImport}
       />

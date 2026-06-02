@@ -12,19 +12,27 @@ services:
       MYSQL_DATABASE:      ${MYSQL_DATABASE:-qcm_db}
       MYSQL_USER:          ${MYSQL_USER:-qcm_user}
       MYSQL_PASSWORD:      ${MYSQL_PASSWORD:-qcm_secret123}
-    ports:
-      - "3306:3306"
+    # Port 3306 non exposé : accessible uniquement dans le réseau Docker
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
              "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootsecret123}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 20
-      start_period: 30s
+      start_period: 40s
     networks:
       - qcm-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ── Backend Node.js / Express ────────────────────────────────
   backend:
@@ -34,20 +42,30 @@ services:
     container_name: qcm-backend
     restart: unless-stopped
     environment:
-      DATABASE_URL:          mysql://${MYSQL_USER:-qcm_user}:${MYSQL_PASSWORD:-qcm_secret123}@db:3306/${MYSQL_DATABASE:-qcm_db}
-      JWT_SECRET:            ${JWT_SECRET:-changeme-jwt-secret-32chars-minimum}
-      JWT_REFRESH_SECRET:    ${JWT_REFRESH_SECRET:-changeme-refresh-secret-32chars}
-      JWT_EXPIRES_IN:        ${JWT_EXPIRES_IN:-1h}
+      DATABASE_URL:           mysql://${MYSQL_USER:-qcm_user}:${MYSQL_PASSWORD:-qcm_secret123}@db:3306/${MYSQL_DATABASE:-qcm_db}
+      JWT_SECRET:             ${JWT_SECRET}
+      JWT_REFRESH_SECRET:     ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN:         ${JWT_EXPIRES_IN:-1h}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      PORT:                  3001
-      SEED_DB:               ${SEED_DB:-false}
-    ports:
-      - "3001:3001"
+      PORT:                   3001
+      SEED_DB:                ${SEED_DB:-false}
+      NODE_ENV:               production
+    # Port 3001 non exposé : nginx proxie vers ce service en interne
     depends_on:
       db:
         condition: service_healthy
     networks:
       - qcm-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   # ── Frontend React (nginx) ───────────────────────────────────
   frontend:
@@ -62,6 +80,16 @@ services:
       - backend
     networks:
       - qcm-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 # ── Volumes & réseau ─────────────────────────────────────────
 volumes:

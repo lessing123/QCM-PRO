@@ -8,10 +8,12 @@ import CircularTimer from '../../components/common/CircularTimer'
 import { Exam, Attempt } from '../../types'
 import { resolveMediaUrl } from '../../utils/media'
 import toast from 'react-hot-toast'
+import { useTheme } from '../../context/ThemeContext'
 
 export default function TakeExam() {
   const { id }      = useParams()
   const navigate    = useNavigate()
+  const { anticheatDisabled } = useTheme()
 
   const [exam, setExam]               = useState<Exam | null>(null)
   const [attempt, setAttempt]         = useState<Attempt | null>(null)
@@ -25,14 +27,16 @@ export default function TakeExam() {
   const [tabCount, setTabCount]       = useState(0)
   const [isBlocked, setIsBlocked]     = useState(false)
 
-  const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
-  const saveRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const examRef    = useRef<Exam | null>(null)
-  const attemptRef = useRef<Attempt | null>(null)
+  const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
+  const saveRef          = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const examRef          = useRef<Exam | null>(null)
+  const attemptRef       = useRef<Attempt | null>(null)
+  const anticheatRef     = useRef(anticheatDisabled)
 
   useEffect(() => { if (id) load() }, [id])
-  useEffect(() => { examRef.current    = exam    }, [exam])
-  useEffect(() => { attemptRef.current = attempt }, [attempt])
+  useEffect(() => { examRef.current        = exam             }, [exam])
+  useEffect(() => { attemptRef.current     = attempt          }, [attempt])
+  useEffect(() => { anticheatRef.current   = anticheatDisabled }, [anticheatDisabled])
 
   // Timer
   useEffect(() => {
@@ -75,6 +79,7 @@ export default function TakeExam() {
   useEffect(() => {
     const handler = () => {
       if (!document.hidden || !examRef.current) return
+      if (anticheatRef.current) return
       const newCount = tabCount + 1
       setTabCount(newCount)
       emitTabChange(examRef.current.id, examRef.current.titre)
@@ -113,6 +118,7 @@ export default function TakeExam() {
   // Anti-triche : quitter la page
   useEffect(() => {
     const handler = () => {
+      if (anticheatRef.current) return
       if (examRef.current && attemptRef.current)
         emitExamQuit(examRef.current.id, examRef.current.titre)
     }

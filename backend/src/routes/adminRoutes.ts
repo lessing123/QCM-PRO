@@ -33,8 +33,9 @@ router.get('/students/:id',             studentController.getStudentById)
 router.post('/students',                studentController.createStudent)
 router.put('/students/:id',             studentController.updateStudent)
 router.delete('/students/:id',          studentController.deleteStudent)
-router.post('/students/import',         studentController.importStudents)
+router.post('/students/import',              studentController.importStudents)
 router.post('/students/:id/reset-password', studentController.resetStudentPassword)
+router.patch('/students/:id/toggle-active', studentController.toggleStudentActive)
 
 // Groupes
 router.get('/groups',                   groupController.getAllGroups)

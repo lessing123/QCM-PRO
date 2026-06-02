@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../config/db.js'
 import { generateTokens, verifyToken, AuthRequest, asyncHandler, type TokenPayload } from '../middlewares/authMiddleware.js'
 import { registerSchema, loginSchema } from '../utils/validators.js'
+import { io } from '../socket/socketServer.js'
 
 // Inscription (admin uniquement)
 export const register = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -24,6 +25,8 @@ export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
 
   const user = await prisma.user.findUnique({ where: { email } })
   if (!user) return res.status(401).json({ error: 'Email ou mot de passe incorrect' })
+
+  if (!user.is_active) return res.status(403).json({ error: 'Compte désactivé. Contactez votre administrateur.' })
 
   const isValid = await bcrypt.compare(password, user.password)
   if (!isValid) return res.status(401).json({ error: 'Email ou mot de passe incorrect' })
@@ -86,10 +89,13 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
     where: { id: req.user!.id },
     data: {
       password:             await bcrypt.hash(newPassword, 10),
-      password_temp:        null,   // effacé après changement
+      password_temp:        null,
       must_change_password: false,
     },
   })
+
+  // Notifier l'admin en temps réel pour mettre à jour la liste
+  io?.to('admins').emit('user:passwordChanged', { userId: req.user!.id })
 
   res.json({ message: 'Mot de passe modifié avec succès' })
 })

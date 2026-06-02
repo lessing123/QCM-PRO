@@ -133,4 +133,9 @@ export const studentService = {
     const response = await api.post(`/admin/students/${id}/reset-password`, { password })
     return response.data
   },
+
+  async toggleActive(id: string): Promise<{ message: string; is_active: boolean }> {
+    const response = await api.patch(`/admin/students/${id}/toggle-active`)
+    return response.data
+  },
 }

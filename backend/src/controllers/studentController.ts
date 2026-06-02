@@ -148,6 +148,20 @@ export const resetStudentPassword = asyncHandler(async (req: AuthRequest, res: R
   res.json({ message: 'Mot de passe réinitialisé', password: newPassword })
 })
 
+// Activer / désactiver un compte étudiant
+export const toggleStudentActive = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = idParamSchema.parse(req.params)
+  const student = await prisma.user.findFirst({ where: { id, role: 'STUDENT' } })
+  if (!student) return res.status(404).json({ error: 'Étudiant non trouvé' })
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { is_active: !student.is_active },
+    select: { id: true, is_active: true },
+  })
+  res.json({ message: updated.is_active ? 'Compte activé' : 'Compte désactivé', is_active: updated.is_active })
+})
+
 // Importer plusieurs étudiants via CSV/JSON
 export const importStudents = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { students } = importStudentsSchema.parse(req.body)

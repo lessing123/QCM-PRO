@@ -8,6 +8,7 @@ export interface User {
   nom: string
   prenom: string
   role: Role
+  is_active?: boolean
   is_online?: boolean
   last_seen?: string
   must_change_password?: boolean

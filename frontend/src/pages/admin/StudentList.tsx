@@ -82,11 +82,16 @@ export default function StudentList() {
   useEffect(() => {
     const socket = getSocket()
     if (!socket) return
-    const handler = ({ userId, is_online }: { userId: string; is_online: boolean }) => {
+    const onStatus = ({ userId, is_online }: { userId: string; is_online: boolean }) => {
       setStudents(prev => prev.map(s => s.id === userId ? { ...s, is_online } : s))
     }
-    socket.on('user:status', handler)
-    return () => { socket.off('user:status', handler) }
+    const onPasswordChanged = () => { loadStudents() }
+    socket.on('user:status', onStatus)
+    socket.on('user:passwordChanged', onPasswordChanged)
+    return () => {
+      socket.off('user:status', onStatus)
+      socket.off('user:passwordChanged', onPasswordChanged)
+    }
   }, [])
 
   const loadStudents = async () => {
@@ -175,17 +180,6 @@ export default function StudentList() {
     }
   }
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every(s => selectedIds.has(s.id))
-
-  const handleSelectAll = () => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (allFilteredSelected) filtered.forEach(s => next.delete(s.id))
-      else filtered.forEach(s => next.add(s.id))
-      return next
-    })
-  }
-
   const handleSelectOne = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -228,6 +222,17 @@ export default function StudentList() {
   const filtered = students.filter(s =>
     `${s.nom} ${s.prenom} ${s.email}`.toLowerCase().includes(search.toLowerCase())
   )
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(s => selectedIds.has(s.id))
+
+  const handleSelectAll = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (allFilteredSelected) filtered.forEach(s => next.delete(s.id))
+      else filtered.forEach(s => next.add(s.id))
+      return next
+    })
+  }
 
   if (isLoading) return (
     <div className="space-y-4 animate-pulse">
@@ -307,9 +312,15 @@ export default function StudentList() {
                     className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 cursor-pointer"
                   />
                 </th>
-                {['Étudiant', 'Mot de passe', 'Classes', 'Statut', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    {h}
+                {[
+                  { label: 'Étudiant',      cls: '' },
+                  { label: 'Mot de passe',  cls: 'hidden md:table-cell' },
+                  { label: 'Classes',       cls: 'hidden sm:table-cell' },
+                  { label: 'Statut',        cls: 'hidden lg:table-cell' },
+                  { label: 'Actions',       cls: '' },
+                ].map(h => (
+                  <th key={h.label} className={`px-5 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide ${h.cls}`}>
+                    {h.label}
                   </th>
                 ))}
               </tr>
@@ -322,13 +333,14 @@ export default function StudentList() {
                   </td>
                 </tr>
               ) : filtered.map(student => {
-                const showPwd = visiblePwd.has(student.id)
+                const showPwd    = visiblePwd.has(student.id)
                 const hasTempPwd = !!(student as any).password_temp
                 const mustChange = !!(student as any).must_change_password
                 const isSelected = selectedIds.has(student.id)
+                const isActive   = (student as any).is_active !== false
 
                 return (
-                  <tr key={student.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                  <tr key={student.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? 'bg-primary-50 dark:bg-primary-900/10' : ''} ${!isActive ? 'opacity-50' : ''}`}>
                     <td className="px-4 py-4 w-10">
                       <input
                         type="checkbox"
@@ -351,7 +363,7 @@ export default function StudentList() {
                     </td>
 
                     {/* Mot de passe */}
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td className="px-5 py-4 whitespace-nowrap hidden md:table-cell">
                       {hasTempPwd ? (
                         <div className="flex items-center gap-2">
                           <code className={`text-sm font-mono ${showPwd ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
@@ -380,7 +392,7 @@ export default function StudentList() {
                     </td>
 
                     {/* Classes */}
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 hidden sm:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {(student as any).groups?.map((g: any) => (
                           <span key={g.id} className="badge badge-primary">{g.nom}</span>
@@ -389,7 +401,7 @@ export default function StudentList() {
                     </td>
 
                     {/* Statut connexion */}
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td className="px-5 py-4 whitespace-nowrap hidden lg:table-cell">
                       <span className={`badge ${student.is_online ? 'badge-success' : 'badge-neutral'}`}>
                         {student.is_online ? 'En ligne' : 'Hors ligne'}
                       </span>
@@ -408,7 +420,10 @@ export default function StudentList() {
                             selectedGroupIds: (student as any).groups?.map((g: any) => g.id) ?? [],
                           })}
                         >
-                          Modifier
+                          <span className="hidden sm:inline">Modifier</span>
+                          <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                          </svg>
                         </Button>
                         <Button
                           variant="ghost" size="sm"
@@ -419,6 +434,31 @@ export default function StudentList() {
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                           </svg>
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm"
+                          title={isActive ? 'Désactiver le compte' : 'Activer le compte'}
+                          onClick={async () => {
+                            try {
+                              const res = await studentService.toggleActive(student.id)
+                              toast.success(res.message)
+                              loadStudents()
+                            } catch { toast.error('Erreur') }
+                          }}
+                          className={isActive
+                            ? 'text-slate-400 hover:text-warning-600 hover:bg-warning-50 dark:hover:bg-warning-900/20'
+                            : 'text-success-600 hover:bg-success-50 dark:text-success-400 dark:hover:bg-success-900/20'
+                          }
+                        >
+                          {isActive ? (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
                         </Button>
                         <Button
                           variant="ghost" size="sm"

@@ -204,10 +204,16 @@ export default function TakeExam() {
     }, 400)
   }, [])
 
-  // Selection unique (SINGLE / TRUE_FALSE)
+  // Selection unique (SINGLE / TRUE_FALSE) — cliquer à nouveau désélectionne
   const selectAnswer = (questionId: string, answerId: string) => {
-    setAnswers(prev => ({ ...prev, [questionId]: answerId }))
-    saveAnswer(questionId, answerId)
+    const current = answers[questionId]
+    if (current === answerId) {
+      setAnswers(prev => { const n = { ...prev }; delete n[questionId]; return n })
+      saveAnswer(questionId, undefined)
+    } else {
+      setAnswers(prev => ({ ...prev, [questionId]: answerId }))
+      saveAnswer(questionId, answerId)
+    }
   }
 
   // Toggle pour choix multiple (MULTIPLE)
@@ -559,13 +565,16 @@ export default function TakeExam() {
             )}
           </div>
 
-          {/* Mini-map */}
+          {/* Mini-map cliquable */}
           <div className="text-center space-y-2">
             <div className="flex justify-center gap-1.5 flex-wrap">
               {questions.map((q, i) => (
-                <div key={q.id} title={`Q${i + 1}`}
+                <button
+                  key={q.id}
+                  title={`Question ${i + 1}${answers[q.id] ? ' — répondue' : skipped.has(i) ? ' — passée' : ''}`}
+                  onClick={() => setCurrentIndex(i)}
                   className={[
-                    'h-2 rounded-full transition-all duration-300',
+                    'h-2 rounded-full transition-all duration-300 cursor-pointer hover:opacity-70',
                     i === currentIndex ? 'w-6 bg-primary-500 dark:bg-primary-400' :
                     answers[q.id]      ? 'w-2 bg-success-400 dark:bg-success-500' :
                     skipped.has(i)     ? 'w-2 bg-warning-400 dark:bg-warning-500' :
@@ -575,7 +584,7 @@ export default function TakeExam() {
               ))}
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Répondues : {answered}/{total}
+              Répondues : {answered}/{total} — cliquez sur un point pour naviguer
             </p>
           </div>
         </div>

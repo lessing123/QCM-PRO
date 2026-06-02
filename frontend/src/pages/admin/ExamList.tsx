@@ -182,9 +182,9 @@ export default function ExamList() {
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1 sm:gap-2 flex-wrap">
                   <Link to={`/admin/results/${exam.id}`}>
-                    <Button variant="ghost" size="sm">Résultats</Button>
+                    <Button variant="ghost" size="sm" className="hidden sm:flex">Résultats</Button>
                   </Link>
                   <Link to={`/admin/exams/${exam.id}/edit`}>
                     <Button variant="outline" size="sm">Modifier</Button>

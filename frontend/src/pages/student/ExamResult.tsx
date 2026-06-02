@@ -86,33 +86,44 @@ export default function ExamResult() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className={`rounded-[1.5rem] border px-5 py-4 ${passed ? 'border-emerald-400/40 bg-emerald-400/10' : 'border-rose-400/40 bg-rose-400/10'}`}>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Statut</p>
-                <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
-                  {passed ? <IconCheck /> : <IconCross />}
-                  {passed ? 'Réussi' : 'Non réussi'}
+              {resultats_publics ? (
+                <>
+                  <div className={`rounded-[1.5rem] border px-5 py-4 ${passed ? 'border-emerald-400/40 bg-emerald-400/10' : 'border-rose-400/40 bg-rose-400/10'}`}>
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Statut</p>
+                    <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
+                      {passed ? <IconCheck /> : <IconCross />}
+                      {passed ? 'Réussi' : 'Non réussi'}
+                    </div>
+                  </div>
+                  <div className="rounded-[1.5rem] bg-white/10 px-6 py-4 text-center backdrop-blur">
+                    <p className="text-4xl font-black">{attempt.score?.toFixed(1)}</p>
+                    <p className="text-xs uppercase tracking-[0.35em] text-slate-300">/20</p>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-[1.5rem] border border-amber-400/30 bg-amber-400/10 px-6 py-4 text-center">
+                  <p className="text-sm font-semibold text-amber-200">Note en attente</p>
+                  <p className="mt-1 text-xs text-amber-300/70">En attente de publication</p>
                 </div>
-              </div>
-              <div className="rounded-[1.5rem] bg-white/10 px-6 py-4 text-center backdrop-blur">
-                <p className="text-4xl font-black">{attempt.score?.toFixed(1)}</p>
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-300">/20</p>
-              </div>
+              )}
             </div>
           </div>
 
-          <div className="mt-8 max-w-md">
-            <div className="h-3 overflow-hidden rounded-full bg-white/15">
-              <div
-                className={`h-full rounded-full ${passed ? 'bg-emerald-400' : 'bg-rose-400'}`}
-                style={{ width: `${scorePercent}%` }}
-              />
+          {resultats_publics && (
+            <div className="mt-8 max-w-md">
+              <div className="h-3 overflow-hidden rounded-full bg-white/15">
+                <div
+                  className={`h-full rounded-full ${passed ? 'bg-emerald-400' : 'bg-rose-400'}`}
+                  style={{ width: `${scorePercent}%` }}
+                />
+              </div>
+              <p className="mt-3 text-sm text-slate-300">
+                {passed
+                  ? 'Félicitations, la performance est au niveau attendu.'
+                  : 'Le travail est visible, mais quelques points restent à consolider.'}
+              </p>
             </div>
-            <p className="mt-3 text-sm text-slate-300">
-              {passed
-                ? 'Félicitations, la performance est au niveau attendu.'
-                : 'Le travail est visible, mais quelques points restent à consolider.'}
-            </p>
-          </div>
+          )}
         </div>
       </Card>
 

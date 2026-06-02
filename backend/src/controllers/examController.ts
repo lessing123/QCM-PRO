@@ -104,7 +104,11 @@ export const deleteExam = asyncHandler(async (req: AuthRequest, res: Response) =
     return res.status(404).json({ error: 'Examen non trouvé' })
   }
 
+  // Supprimer dans l'ordre pour respecter les contraintes FK
+  await prisma.studentAnswer.deleteMany({ where: { attempt: { examId: id } } })
+  await prisma.attempt.deleteMany({ where: { examId: id } })
   await prisma.exam.delete({ where: { id } })
+
   res.json({ message: 'Examen supprimé avec succès' })
 })
 

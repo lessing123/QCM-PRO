@@ -24,7 +24,7 @@ export default function TakeExam() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [skipped, setSkipped]         = useState<Set<number>>(new Set())
-  const [tabCount, setTabCount]       = useState(0)
+  const [, setTabCount]               = useState(0)
   const [isBlocked, setIsBlocked]     = useState(false)
 
   const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)

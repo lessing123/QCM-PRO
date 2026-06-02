@@ -91,8 +91,8 @@ export const studentService = {
   },
 
   // Importer des étudiants
-  async importStudents(students: Omit<StudentFormData, 'password'>[]): Promise<{ message: string; students: any[]; errors?: any[] }> {
-    const response = await api.post('/admin/students/import', { students })
+  async importStudents(students: Omit<StudentFormData, 'password'>[], groupId?: string): Promise<{ message: string; students: any[]; errors?: any[] }> {
+    const response = await api.post('/admin/students/import', { students, ...(groupId ? { groupId } : {}) })
     return response.data
   },
 

@@ -79,6 +79,7 @@ export const importStudentsSchema = z.object({
       prenom: z.string().min(1, 'Le prénom est requis'),
     })
   ).min(1, 'Au moins un étudiant est requis'),
+  groupId: z.string().uuid().optional(),
 })
 
 // ========== PARAMÈTRES D'URL ==========

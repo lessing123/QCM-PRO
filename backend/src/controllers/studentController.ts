@@ -150,7 +150,8 @@ export const resetStudentPassword = asyncHandler(async (req: AuthRequest, res: R
 
 // Importer plusieurs étudiants via CSV/JSON
 export const importStudents = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { students, groupId } = importStudentsSchema.parse(req.body)
+  const { students } = importStudentsSchema.parse(req.body)
+  const groupId: string | undefined = typeof req.body.groupId === 'string' ? req.body.groupId : undefined
   const created: any[] = []
   const errors: any[] = []
 

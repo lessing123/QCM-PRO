@@ -8,7 +8,7 @@ import Modal from '../../components/common/Modal'
 import { User } from '../../types'
 import toast from 'react-hot-toast'
 
-const DEFAULT_PASSWORD = 'Esgis@2026'
+const DEFAULT_PASSWORD = 'Esgis2026'
 
 // ── Composants utilitaires ────────────────────────────────────────
 

@@ -4,7 +4,7 @@ import { prisma } from '../config/db.js'
 import { AuthRequest, asyncHandler } from '../middlewares/authMiddleware.js'
 import { registerSchema, importStudentsSchema, idParamSchema } from '../utils/validators.js'
 
-const DEFAULT_PASSWORD = 'Esgis@2026'
+const DEFAULT_PASSWORD = 'Esgis2026'
 
 // Liste de tous les étudiants (avec password_temp pour l'admin)
 export const getAllStudents = asyncHandler(async (req: AuthRequest, res: Response) => {

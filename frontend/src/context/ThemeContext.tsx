@@ -18,7 +18,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
 
-  const [toggleCount, setToggleCount] = useState(0)
+  const [, setToggleCount] = useState(0)
   const [anticheatDisabled, setAnticheatDisabled] = useState(() =>
     sessionStorage.getItem('_qk') === '1'
   )

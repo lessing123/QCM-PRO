@@ -507,7 +507,7 @@ export default function TakeExam() {
             </div>
           </div>
 
-          {/* Navigation Precedent / Passer / Suivant */}
+          {/* Navigation Précédent / Passer ou Suivant */}
           <div className="flex items-center justify-between">
             <Button variant="outline" onClick={goPrev} disabled={currentIndex === 0}>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -516,15 +516,6 @@ export default function TakeExam() {
               Précédent
             </Button>
 
-            {!isAnswered && !isLast && (
-              <Button variant="ghost" size="sm" onClick={skipQuestion} className="text-xs text-slate-400 dark:text-slate-500">
-                Passer
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </Button>
-            )}
-
             {isLast ? (
               <Button variant="success" onClick={() => setShowConfirm(true)}>
                 Terminer
@@ -532,11 +523,18 @@ export default function TakeExam() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
               </Button>
-            ) : (
+            ) : isAnswered ? (
               <Button onClick={goNext}>
                 Suivant
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={skipQuestion} className="text-xs text-slate-400 dark:text-slate-500">
+                Passer
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </Button>
             )}

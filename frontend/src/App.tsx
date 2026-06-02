@@ -74,12 +74,14 @@ export default function App() {
         <Route path="guide" element={<AdminGuide />} />
       </Route>
 
+      {/* Etudiant — examen en plein écran sans Navbar */}
+      <Route path="/student/exams/:id/take" element={<ProtectedRoute allowedRole="STUDENT"><TakeExam /></ProtectedRoute>} />
+
       {/* Etudiant */}
       <Route path="/student" element={<ProtectedRoute allowedRole="STUDENT"><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/student/dashboard" replace />} />
         <Route path="dashboard" element={<StudentDashboard />} />
         <Route path="exams/:id" element={<ExamInstructions />} />
-        <Route path="exams/:id/take" element={<TakeExam />} />
         <Route path="recap/:attemptId" element={<ExamRecap />} />
         <Route path="results/:attemptId" element={<ExamResult />} />
         <Route path="history" element={<History />} />

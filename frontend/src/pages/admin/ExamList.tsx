@@ -12,6 +12,7 @@ export default function ExamList() {
   const [isLoading, setIsLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<Exam | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const navigate = useNavigate()
 
   useEffect(() => { loadExams() }, [])
@@ -24,6 +25,38 @@ export default function ExamList() {
       toast.error('Erreur de chargement')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const allSelected = exams.length > 0 && exams.every(e => selectedIds.has(e.id))
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleSelectAll = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (allSelected) exams.forEach(e => next.delete(e.id))
+      else exams.forEach(e => next.add(e.id))
+      return next
+    })
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Supprimer ${selectedIds.size} examen(s) sélectionné(s) ? Toutes les questions et tentatives liées seront perdues.`)) return
+    try {
+      await Promise.all([...selectedIds].map(id => examService.delete(id)))
+      toast.success(`${selectedIds.size} examen(s) supprimé(s)`)
+      setSelectedIds(new Set())
+      loadExams()
+    } catch {
+      toast.error('Erreur lors de la suppression')
     }
   }
 
@@ -66,15 +99,38 @@ export default function ExamList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="page-title">Examens</h1>
           <p className="page-subtitle">{exams.length} examen{exams.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={() => navigate('/admin/exams/new')}>
-          <IconPlus />
-          Nouvel examen
-        </Button>
+        <div className="flex items-center gap-2">
+          {exams.length > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-500 dark:text-slate-400 select-none">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={handleSelectAll}
+                className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 cursor-pointer"
+              />
+              Tout sélectionner
+            </label>
+          )}
+          {selectedIds.size > 0 && (
+            <Button
+              onClick={handleBulkDelete}
+              className="bg-danger-500 hover:bg-danger-600 text-white border-0"
+              size="sm"
+            >
+              <IconTrash />
+              Supprimer ({selectedIds.size})
+            </Button>
+          )}
+          <Button onClick={() => navigate('/admin/exams/new')}>
+            <IconPlus />
+            Nouvel examen
+          </Button>
+        </div>
       </div>
 
       {exams.length === 0 ? (
@@ -90,25 +146,39 @@ export default function ExamList() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {exams.map(exam => (
+          {exams.map(exam => {
+            const isSelected = selectedIds.has(exam.id)
+            return (
             <div
               key={exam.id}
-              className="group rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:border-primary-300 hover:shadow-card-hover dark:border-slate-700/60 dark:bg-slate-900 dark:hover:border-primary-700"
+              className={`group rounded-2xl border p-5 transition-all duration-200 hover:shadow-card-hover ${
+                isSelected
+                  ? 'border-primary-400 bg-primary-50 dark:border-primary-600 dark:bg-primary-900/10'
+                  : 'border-slate-200 bg-white hover:border-primary-300 dark:border-slate-700/60 dark:bg-slate-900 dark:hover:border-primary-700'
+              }`}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{exam.titre}</h3>
-                    {exam.melange_questions && <span className="badge badge-primary">Aléatoire</span>}
-                  </div>
-                  {exam.description && (
-                    <p className="mb-3 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">{exam.description}</p>
-                  )}
-                  <div className="flex flex-wrap gap-4">
-                    <Meta icon={<IconClock />} value={`${exam.duree_minutes} min`} />
-                    <Meta icon={<IconQuestion />} value={`${(exam as any)._count?.questions ?? 0} questions`} />
-                    <Meta icon={<IconRepeat />} value={`${exam.tentatives_max} tentative${exam.tentatives_max > 1 ? 's' : ''}`} />
-                    <Meta icon={<IconPlay />} value={`${(exam as any)._count?.attempts ?? 0} passages`} />
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleSelectOne(exam.id)}
+                    className="mt-0.5 rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 cursor-pointer shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{exam.titre}</h3>
+                      {exam.melange_questions && <span className="badge badge-primary">Aléatoire</span>}
+                    </div>
+                    {exam.description && (
+                      <p className="mb-3 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">{exam.description}</p>
+                    )}
+                    <div className="flex flex-wrap gap-4">
+                      <Meta icon={<IconClock />} value={`${exam.duree_minutes} min`} />
+                      <Meta icon={<IconQuestion />} value={`${(exam as any)._count?.questions ?? 0} questions`} />
+                      <Meta icon={<IconRepeat />} value={`${exam.tentatives_max} tentative${exam.tentatives_max > 1 ? 's' : ''}`} />
+                      <Meta icon={<IconPlay />} value={`${(exam as any)._count?.attempts ?? 0} passages`} />
+                    </div>
                   </div>
                 </div>
 
@@ -134,7 +204,7 @@ export default function ExamList() {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 

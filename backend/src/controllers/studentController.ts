@@ -86,7 +86,7 @@ export const createStudent = asyncHandler(async (req: AuthRequest, res: Response
 // Mettre à jour un étudiant
 export const updateStudent = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = idParamSchema.parse(req.params)
-  const { email, nom, prenom, password } = req.body
+  const { email, nom, prenom, password, groupIds } = req.body
 
   const existingStudent = await prisma.user.findFirst({ where: { id, role: 'STUDENT' } })
   if (!existingStudent) return res.status(404).json({ error: 'Étudiant non trouvé' })
@@ -101,8 +101,11 @@ export const updateStudent = asyncHandler(async (req: AuthRequest, res: Response
   if (prenom) updateData.prenom = prenom
   if (password) {
     updateData.password      = await bcrypt.hash(password, 10)
-    updateData.password_temp = password          // admin définit un nouveau mdp visible
-    updateData.must_change_password = true        // oblige à changer
+    updateData.password_temp = password
+    updateData.must_change_password = true
+  }
+  if (Array.isArray(groupIds)) {
+    updateData.groups = { set: groupIds.map((gid: string) => ({ id: gid })) }
   }
 
   const student = await prisma.user.update({
@@ -111,6 +114,7 @@ export const updateStudent = asyncHandler(async (req: AuthRequest, res: Response
     select: {
       id: true, email: true, nom: true, prenom: true,
       password_temp: true, must_change_password: true, updatedAt: true,
+      groups: { select: { id: true, nom: true } },
     },
   })
   res.json({ message: 'Étudiant mis à jour avec succès', student })
@@ -146,7 +150,7 @@ export const resetStudentPassword = asyncHandler(async (req: AuthRequest, res: R
 
 // Importer plusieurs étudiants via CSV/JSON
 export const importStudents = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { students } = importStudentsSchema.parse(req.body)
+  const { students, groupId } = importStudentsSchema.parse(req.body)
   const created: any[] = []
   const errors: any[] = []
 
@@ -164,6 +168,7 @@ export const importStudents = asyncHandler(async (req: AuthRequest, res: Respons
           nom:                  student.nom,
           prenom:               student.prenom,
           role:                 'STUDENT',
+          groups:               groupId ? { connect: [{ id: groupId }] } : undefined,
         },
         select: { id: true, email: true, nom: true, prenom: true, password_temp: true },
       })

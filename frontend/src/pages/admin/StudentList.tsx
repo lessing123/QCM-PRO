@@ -70,6 +70,7 @@ export default function StudentList() {
   })
   const [importModal, setImportModal] = useState(false)
   const [importData, setImportData]   = useState('')
+  const [importGroupId, setImportGroupId] = useState('')
 
   useEffect(() => {
     loadStudents()
@@ -126,7 +127,7 @@ export default function StudentList() {
     const { student, editId, selectedGroupIds } = studentModal
     try {
       if (editId) {
-        await studentService.updateStudent(editId, student)
+        await studentService.updateStudent(editId, { ...student, groupIds: selectedGroupIds } as any)
         toast.success('Étudiant mis à jour')
       } else {
         await studentService.createStudent({ ...student, groupIds: selectedGroupIds } as any)
@@ -180,11 +181,12 @@ export default function StudentList() {
         const [nom, prenom, email] = line.split(',').map(s => s.trim())
         return { nom, prenom, email }
       })
-      const result = await studentService.importStudents(list)
+      const result = await studentService.importStudents(list, importGroupId || undefined)
       toast.success(`${result.students.length} étudiant(s) importé(s) — mot de passe par défaut : ${DEFAULT_PASSWORD}`)
       loadStudents()
       setImportModal(false)
       setImportData('')
+      setImportGroupId('')
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Erreur')
     }
@@ -597,6 +599,23 @@ export default function StudentList() {
             placeholder={'Dupont,Jean,jean.dupont@example.com\nMartin,Marie,marie.martin@example.com'}
             className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none transition-all"
           />
+          {groups.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Assigner à une classe <span className="text-slate-400 font-normal">(optionnel)</span>
+              </label>
+              <select
+                value={importGroupId}
+                onChange={e => setImportGroupId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+              >
+                <option value="">— Aucune classe —</option>
+                {groups.map(g => (
+                  <option key={g.id} value={g.id}>{g.nom}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

@@ -117,6 +117,10 @@ export default function ExamForm() {
         for (let i = 0; i < questions.length; i++) {
           await examService.createQuestion({ ...questions[i], examId: newExam.id })
         }
+        // Déclenche la notification email (l'examen a maintenant ses questions)
+        if (questions.length > 0) {
+          examService.update(newExam.id, payload).catch(() => {})
+        }
         toast.success('Examen créé')
       }
       navigate('/admin/exams')

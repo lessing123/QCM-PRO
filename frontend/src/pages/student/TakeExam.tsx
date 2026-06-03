@@ -134,7 +134,42 @@ export default function TakeExam() {
     }
   }, [])
 
-  // Anti-triche : quitter la page
+  // Anti-triche : verrouiller l'historique (boutons ← → du navigateur)
+  useEffect(() => {
+    // Empêche le bouton retour de quitter la page : on injecte un état dans l'historique
+    // Chaque fois que popstate se déclenche (bouton ← ou →), on re-pousse l'état
+    // pour rester sur la page, et on bloque l'étudiant.
+    window.history.pushState({ examLock: true }, '', window.location.href)
+
+    const handlePopState = () => {
+      // Re-pousser immédiatement pour annuler la navigation
+      window.history.pushState({ examLock: true }, '', window.location.href)
+
+      if (anticheatRef.current) return
+      if (!examRef.current || !attemptRef.current) return
+
+      emitExamQuit(examRef.current.id, examRef.current.titre)
+
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-fade-in' : 'opacity-0'} flex items-start gap-3 max-w-sm w-full bg-white dark:bg-slate-800 border border-danger-300 dark:border-danger-700 rounded-2xl shadow-modal px-4 py-3`}>
+          <div className="shrink-0 w-8 h-8 bg-danger-100 dark:bg-danger-900/40 rounded-xl flex items-center justify-center">
+            <svg className="w-4 h-4 text-danger-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-danger-800 dark:text-danger-300">Navigation détectée</p>
+            <p className="text-xs text-danger-600 dark:text-danger-400 mt-0.5">Tentative de navigation — incident signalé</p>
+          </div>
+        </div>
+      ), { id: 'nav-warning', duration: 5000, position: 'top-right' })
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  // Anti-triche : fermer/rafraîchir la page (F5, Ctrl+R, fermeture onglet)
   useEffect(() => {
     const handler = () => {
       if (anticheatRef.current) return

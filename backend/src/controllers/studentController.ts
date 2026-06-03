@@ -15,6 +15,7 @@ export const getAllStudents = asyncHandler(async (req: AuthRequest, res: Respons
       email: true,
       nom: true,
       prenom: true,
+      is_active: true,
       is_online: true,
       last_seen: true,
       must_change_password: true,

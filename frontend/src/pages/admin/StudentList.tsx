@@ -85,7 +85,11 @@ export default function StudentList() {
     const onStatus = ({ userId, is_online }: { userId: string; is_online: boolean }) => {
       setStudents(prev => prev.map(s => s.id === userId ? { ...s, is_online } : s))
     }
-    const onPasswordChanged = () => { loadStudents() }
+    const onPasswordChanged = ({ userId }: { userId: string }) => {
+      setStudents(prev => prev.map(s =>
+        s.id === userId ? { ...s, must_change_password: false, password_temp: null } as any : s
+      ))
+    }
     socket.on('user:status', onStatus)
     socket.on('user:passwordChanged', onPasswordChanged)
     return () => {
@@ -452,7 +456,10 @@ export default function StudentList() {
                             try {
                               const res = await studentService.toggleActive(student.id)
                               toast.success(res.message)
-                              loadStudents()
+                              // Mise à jour locale immédiate sans recharger toute la liste
+                              setStudents(prev => prev.map(s =>
+                                s.id === student.id ? { ...s, is_active: res.is_active } as any : s
+                              ))
                             } catch { toast.error('Erreur') }
                           }}
                           className={isActive

@@ -23,6 +23,8 @@ export default function ExamForm() {
     tentatives_max: 1,
     melange_questions: false,
     melange_reponses: false,
+    date_debut: '',
+    date_fin: '',
   })
 
   const [questions, setQuestions] = useState<QuestionFormData[]>([])
@@ -56,6 +58,8 @@ export default function ExamForm() {
         duree_minutes: exam.duree_minutes,
         tentatives_max: exam.tentatives_max,
         melange_questions: exam.melange_questions,
+        date_debut: exam.date_debut ? new Date(exam.date_debut).toISOString().slice(0, 16) : '',
+        date_fin:   exam.date_fin   ? new Date(exam.date_fin).toISOString().slice(0, 16)   : '',
         melange_reponses: exam.melange_reponses,
       })
       setSelectedGroups(exam.groups?.map(g => g.id) || [])
@@ -96,13 +100,20 @@ export default function ExamForm() {
     e.preventDefault()
     setIsSaving(true)
 
+    const toISO = (val: string | undefined) => val ? new Date(val).toISOString() : undefined
+
     try {
+      const payload = {
+        ...formData,
+        date_debut: toISO(formData.date_debut),
+        date_fin:   toISO(formData.date_fin),
+        groupIds: selectedGroups,
+      }
       if (isEditing && id) {
-        await examService.update(id, { ...formData, groupIds: selectedGroups })
+        await examService.update(id, payload)
         toast.success('Examen mis à jour')
       } else {
-        const { exam: newExam } = await examService.create({ ...formData, groupIds: selectedGroups })
-        // Créer les questions
+        const { exam: newExam } = await examService.create(payload)
         for (let i = 0; i < questions.length; i++) {
           await examService.createQuestion({ ...questions[i], examId: newExam.id })
         }
@@ -458,7 +469,53 @@ export default function ExamForm() {
                   onChange={(e) => setFormData({ ...formData, melange_reponses: e.target.checked })}
                   className="rounded border-slate-300 dark:border-slate-600 accent-indigo-600 w-4 h-4"
                 /> <span className="ml-2 text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors"> Mélanger les réponses
-                </span> </label> </div> </div> {/* Groupes */}
+                </span> </label> </div>
+
+            {/* Planification */}
+            <div className="md:col-span-2 rounded-2xl border border-primary-200 dark:border-primary-800/40 bg-primary-50 dark:bg-primary-900/10 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">Planification (optionnel)</span>
+              </div>
+              <p className="text-xs text-primary-600 dark:text-primary-400">Si non renseigné, l'examen est disponible immédiatement pour les classes assignées.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Disponible à partir de
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formData.date_debut || ''}
+                    onChange={e => setFormData({ ...formData, date_debut: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Disponible jusqu'à
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formData.date_fin || ''}
+                    onChange={e => setFormData({ ...formData, date_fin: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                  />
+                </div>
+              </div>
+              {(formData.date_debut || formData.date_fin) && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, date_debut: '', date_fin: '' })}
+                  className="text-xs text-slate-400 hover:text-danger-500 transition-colors"
+                >
+                  Effacer les dates
+                </button>
+              )}
+            </div>
+
+          </div> {/* Groupes */}
           {groups.length > 0 && (
             <div className="mt-6"> <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"> Classes d'étudiants <span className="text-slate-400 dark:text-slate-500 font-normal">(optionnel)</span> </label> <div className="flex flex-wrap gap-2"> {groups.map((group) => (
                   <button

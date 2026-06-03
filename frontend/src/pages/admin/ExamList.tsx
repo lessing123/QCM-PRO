@@ -179,6 +179,22 @@ export default function ExamList() {
                       <Meta icon={<IconRepeat />} value={`${exam.tentatives_max} tentative${exam.tentatives_max > 1 ? 's' : ''}`} />
                       <Meta icon={<IconPlay />} value={`${(exam as any)._count?.attempts ?? 0} passages`} />
                     </div>
+                    {(exam.date_debut || exam.date_fin) && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {exam.date_debut && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary-50 text-primary-700 border border-primary-200 dark:bg-primary-900/20 dark:text-primary-400 dark:border-primary-800/40">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Dès le {new Date(exam.date_debut).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                        {exam.date_fin && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-warning-50 text-warning-700 border border-warning-200 dark:bg-warning-900/20 dark:text-warning-400 dark:border-warning-800/40">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            Jusqu'au {new Date(exam.date_fin).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

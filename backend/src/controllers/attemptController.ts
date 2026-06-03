@@ -141,6 +141,40 @@ export const startExam = asyncHandler(async (req: AuthRequest, res: Response) =>
   })
 })
 
+// ── QUITTER (beacon fiable sur rechargement / fermeture) ─────────────────────
+
+export const quitExam = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = idParamSchema.parse(req.params)
+  // sendBeacon peut envoyer le token dans le body si le header Authorization est absent
+  if (!req.user && req.body?.token) {
+    try {
+      const { verifyToken } = await import('../middlewares/authMiddleware.js')
+      const payload = verifyToken(req.body.token)
+      req.user = { id: payload.userId, email: payload.email, role: payload.role as 'ADMIN' | 'STUDENT' }
+    } catch { return res.status(200).json({}) }
+  }
+  if (!req.user) return res.status(200).json({})
+
+  const attempt = await prisma.attempt.findFirst({
+    where: { id, userId: req.user!.id, statut: 'EN_COURS' },
+    include: { exam: { select: { id: true, titre: true } } },
+  })
+  if (!attempt) return res.status(200).json({})
+
+  await prisma.attempt.update({ where: { id }, data: { bloque: true } })
+
+  const { io } = await import('../socket/socketServer.js')
+  const message = `Rechargement/fermeture de page détecté pour "${attempt.exam.titre}"`
+  const notif = await prisma.notification.create({
+    data: { type: 'EXAM_QUIT', message, userId: req.user!.id, examId: attempt.exam.id },
+    include: { user: { select: { nom: true, prenom: true } } },
+  }).catch(() => null)
+
+  if (notif) io?.to('admins').emit('notification:new', { ...notif, attemptId: id, canUnblock: true })
+
+  res.status(200).json({})
+})
+
 // ── HISTORIQUE ───────────────────────────────────────────────────────────────
 
 export const getMyAttempts = asyncHandler(async (req: AuthRequest, res: Response) => {

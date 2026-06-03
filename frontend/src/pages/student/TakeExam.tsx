@@ -170,11 +170,18 @@ export default function TakeExam() {
   }, [])
 
   // Anti-triche : fermer/rafraîchir la page (F5, Ctrl+R, fermeture onglet)
+  // sendBeacon garantit l'envoi même si la page se ferme (contrairement à socket)
   useEffect(() => {
     const handler = () => {
       if (anticheatRef.current) return
-      if (examRef.current && attemptRef.current)
-        emitExamQuit(examRef.current.id, examRef.current.titre)
+      if (!attemptRef.current) return
+      const token = localStorage.getItem('accessToken')
+      if (token) {
+        navigator.sendBeacon(
+          `/api/student/attempts/${attemptRef.current.id}/quit`,
+          new Blob([JSON.stringify({ token })], { type: 'application/json' })
+        )
+      }
     }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)

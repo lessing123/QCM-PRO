@@ -37,7 +37,7 @@ const CONSIGNES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
       </svg>
     ),
-    text: () => 'Naviguez question par question avec les boutons Précédent / Suivant.',
+    text: () => 'Naviguez librement entre les questions grâce aux boutons et aux points en bas de l\'écran.',
   },
   {
     icon: (
@@ -47,14 +47,48 @@ const CONSIGNES = [
     ),
     text: () => "À la fin du temps imparti, l'examen est soumis <strong>automatiquement</strong>.",
   },
+]
+
+const ANTICHEAT = [
   {
     icon: (
-      <svg className="w-4 h-4 text-warning-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
       </svg>
     ),
-    text: () => '<strong>Ne fermez pas cette fenêtre</strong> pendant l\'examen, vous perdriez vos réponses.',
-    warn: true,
+    text: () => 'Les <strong>boutons de navigation du navigateur</strong> (← →) sont désactivés. Toute tentative de navigation sera signalée et votre examen sera <strong>suspendu immédiatement</strong>.',
+  },
+  {
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+      </svg>
+    ),
+    text: () => 'Changer d\'onglet, ouvrir une autre fenêtre ou basculer vers une autre application est <strong>détecté et signalé</strong> à l\'administrateur. Votre examen sera suspendu.',
+  },
+  {
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" />
+      </svg>
+    ),
+    text: () => 'Le <strong>partage d\'écran</strong> est interdit et bloqué automatiquement pendant l\'examen.',
+  },
+  {
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+      </svg>
+    ),
+    text: () => 'Un seul appareil peut être connecté à votre compte à la fois. Toute <strong>connexion depuis un autre appareil</strong> vous déconnectera automatiquement.',
+  },
+  {
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+      </svg>
+    ),
+    text: () => 'En cas de suspension, votre examen est <strong>gelé</strong> et le chronomètre s\'arrête. Seul l\'administrateur peut vous débloquer.',
   },
 ]
 
@@ -172,26 +206,40 @@ export default function ExamInstructions() {
       {/* Consignes */}
       <Card title="Consignes importantes">
         <div className="space-y-3">
-          {CONSIGNES.map(({ icon, text, warn }, i) => (
-            <div
-              key={i}
-              className={`flex items-start gap-3 p-3 rounded-xl ${
-                warn
-                  ? 'bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800/40'
-                  : 'bg-slate-50 dark:bg-slate-800/40'
-              }`}
-            >
-              <span className={`shrink-0 mt-0.5 ${warn ? 'text-warning-600 dark:text-warning-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                {icon}
-              </span>
+          {CONSIGNES.map(({ icon, text }, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+              <span className="shrink-0 mt-0.5 text-slate-500 dark:text-slate-400">{icon}</span>
               <p
-                className={`text-sm leading-relaxed ${warn ? 'text-warning-800 dark:text-warning-300' : 'text-slate-600 dark:text-slate-400'}`}
+                className="text-sm leading-relaxed text-slate-600 dark:text-slate-400"
                 dangerouslySetInnerHTML={{ __html: text(exam.duree_minutes) }}
               />
             </div>
           ))}
         </div>
       </Card>
+
+      {/* Règles anti-triche */}
+      <div className="rounded-2xl border border-danger-200 dark:border-danger-800/50 bg-danger-50 dark:bg-danger-950/30 overflow-hidden">
+        <div className="flex items-center gap-2.5 px-4 py-3 bg-danger-100 dark:bg-danger-900/40 border-b border-danger-200 dark:border-danger-800/50">
+          <svg className="w-5 h-5 text-danger-600 dark:text-danger-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-sm font-bold text-danger-700 dark:text-danger-300 uppercase tracking-wide">
+            Système de surveillance — Tolérance zéro
+          </p>
+        </div>
+        <div className="p-4 space-y-3">
+          {ANTICHEAT.map(({ icon, text }, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className="shrink-0 mt-0.5 text-danger-500 dark:text-danger-400">{icon}</span>
+              <p
+                className="text-sm leading-relaxed text-danger-800 dark:text-danger-300"
+                dangerouslySetInnerHTML={{ __html: text() }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Action */}
       <div className="flex flex-col items-center gap-3 pb-4">

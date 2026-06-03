@@ -340,7 +340,7 @@ export default function StudentList() {
                 const isActive   = (student as any).is_active !== false
 
                 return (
-                  <tr key={student.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? 'bg-primary-50 dark:bg-primary-900/10' : ''} ${!isActive ? 'opacity-50' : ''}`}>
+                  <tr key={student.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? 'bg-primary-50 dark:bg-primary-900/10' : ''} ${!isActive ? 'bg-danger-50/30 dark:bg-danger-950/20' : ''}`}>
                     <td className="px-4 py-4 w-10">
                       <input
                         type="checkbox"
@@ -349,15 +349,25 @@ export default function StudentList() {
                         className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 cursor-pointer"
                       />
                     </td>
-                    {/* Nom + statut en ligne */}
+                    {/* Nom + statut en ligne + badge actif/inactif */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2.5">
-                        <OnlineDot isOnline={student.is_online ?? false} />
+                        <OnlineDot isOnline={isActive ? (student.is_online ?? false) : false} />
                         <div>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                          <p className={`text-sm font-semibold ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}>
                             {student.prenom} {student.nom}
                           </p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500">{student.email}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-xs text-slate-400 dark:text-slate-500">{student.email}</p>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                              isActive
+                                ? 'bg-success-50 text-success-700 border-success-200 dark:bg-success-900/20 dark:text-success-400 dark:border-success-800/40'
+                                : 'bg-danger-50 text-danger-700 border-danger-200 dark:bg-danger-900/20 dark:text-danger-400 dark:border-danger-800/40'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-success-500' : 'bg-danger-500'}`} />
+                              {isActive ? 'Actif' : 'Désactivé'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </td>

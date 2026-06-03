@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { User } from '../types'
 import { authService } from '../services/authService'
-import { connectSocket, disconnectSocket } from '../services/socketService'
+import { connectSocket, disconnectSocket, getSocket } from '../services/socketService'
 import api from '../services/api'
 
 interface AuthContextType {
@@ -29,6 +29,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(false)
   }, [])
+
+  // Déconnexion forcée si une autre session ouvre le même compte étudiant
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket) return
+    const handler = () => {
+      disconnectSocket()
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      setUser(null)
+      window.location.href = '/login?reason=session_expired'
+    }
+    socket.on('session:invalidated', handler)
+    return () => { socket.off('session:invalidated', handler) }
+  })
 
   const login = async (email: string, password: string): Promise<User> => {
     const response = await authService.login(email, password)

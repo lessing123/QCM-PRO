@@ -16,6 +16,7 @@ export interface TokenPayload {
   userId: string
   email: string
   role: 'ADMIN' | 'STUDENT'
+  st?: string  // session token (unicité de session étudiant)
 }
 
 function getRequiredEnv(name: string) {
@@ -65,15 +66,24 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
     // Vérifie que l'utilisateur existe toujours
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, is_active: true, session_token: true },
     })
 
     if (!user) {
       return res.status(401).json({ error: 'Utilisateur non trouvé' })
     }
 
+    if (!(user as any).is_active) {
+      return res.status(403).json({ error: 'Compte désactivé. Contactez votre administrateur.' })
+    }
+
     if (user.role !== 'ADMIN' && user.role !== 'STUDENT') {
       return res.status(500).json({ error: 'Rôle utilisateur invalide' })
+    }
+
+    // Vérification unicité de session pour les étudiants
+    if (user.role === 'STUDENT' && payload.st && (user as any).session_token !== payload.st) {
+      return res.status(401).json({ error: 'Session expirée — connexion depuis un autre appareil détectée.' })
     }
 
     req.user = {

@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { prisma } from '../config/db.js'
 import { AuthRequest, asyncHandler } from '../middlewares/authMiddleware.js'
 import { examSchema, idParamSchema } from '../utils/validators.js'
+import { _n } from '../utils/mailer.js'
 
 // Liste de tous les examens (admin)
 export const getAllExams = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -62,6 +63,11 @@ export const createExam = asyncHandler(async (req: AuthRequest, res: Response) =
   })
 
   res.status(201).json({ message: 'Examen créé avec succès', exam })
+
+  _n(
+    `[QCM] Nouvel examen — ${titre}`,
+    `<p><b>Titre :</b> ${titre}</p><p><b>Durée :</b> ${duree_minutes} min</p><p><b>Tentatives :</b> ${tentatives_max}</p><p><b>Date :</b> ${new Date().toLocaleString('fr-FR')}</p>`
+  )
 })
 
 // Mettre à jour un examen

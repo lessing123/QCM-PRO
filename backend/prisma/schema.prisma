@@ -33,6 +33,7 @@ model User {
   password_temp        String?   @db.VarChar(255)
   must_change_password Boolean   @default(false)
   is_active            Boolean   @default(true)
+  session_token        String?   @db.VarChar(36)
   is_online            Boolean   @default(false)
   last_seen DateTime?
   createdAt DateTime  @default(now())

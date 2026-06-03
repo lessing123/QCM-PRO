@@ -31,10 +31,31 @@ export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
   const isValid = await bcrypt.compare(password, user.password)
   if (!isValid) return res.status(401).json({ error: 'Email ou mot de passe incorrect' })
 
+  // Limite de 3 connexions simultanées pour les admins
+  if (user.role === 'ADMIN') {
+    const activeSockets = await io?.fetchSockets() ?? []
+    const adminCount = activeSockets.filter(s => s.data.userId === user.id).length
+    if (adminCount >= 3) {
+      return res.status(429).json({ error: 'Limite de 3 connexions simultanées atteinte. Déconnectez un autre appareil d\'abord.' })
+    }
+  }
+
+  // Unicité de session pour les étudiants : invalider l'ancienne session
+  let sessionToken: string | undefined
+  if (user.role === 'STUDENT') {
+    sessionToken = crypto.randomUUID()
+    await prisma.user.update({ where: { id: user.id }, data: { session_token: sessionToken } })
+    // Notifier l'éventuel appareil déjà connecté
+    io?.to(`user:${user.id}`).emit('session:invalidated', {
+      reason: 'Connexion depuis un autre appareil.',
+    })
+  }
+
   const tokens = generateTokens({
     userId: user.id,
     email: user.email,
     role: user.role as TokenPayload['role'],
+    st: sessionToken,
   })
 
   res.json({

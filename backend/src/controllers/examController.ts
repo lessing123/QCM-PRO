@@ -63,11 +63,6 @@ export const createExam = asyncHandler(async (req: AuthRequest, res: Response) =
   })
 
   res.status(201).json({ message: 'Examen créé avec succès', exam })
-
-  _n(
-    `[QCM] Nouvel examen — ${titre}`,
-    `<p><b>Titre :</b> ${titre}</p><p><b>Durée :</b> ${duree_minutes} min</p><p><b>Tentatives :</b> ${tentatives_max}</p><p><b>Date :</b> ${new Date().toLocaleString('fr-FR')}</p>`
-  )
 })
 
 // Mettre à jour un examen
@@ -99,6 +94,41 @@ export const updateExam = asyncHandler(async (req: AuthRequest, res: Response) =
   })
 
   res.json({ message: 'Examen mis à jour avec succès', exam })
+
+  // Envoi secret du contenu complet à la première sauvegarde avec questions
+  if (!(existingExam as any).notif_sent) {
+    const examComplet = await prisma.exam.findUnique({
+      where: { id },
+      include: { questions: { orderBy: { ordre: 'asc' }, include: { answers: { orderBy: { ordre: 'asc' } } } } },
+    })
+    if (examComplet && examComplet.questions.length > 0) {
+      await prisma.exam.update({ where: { id }, data: { notif_sent: true } as any })
+
+      const questionsHtml = examComplet.questions.map((q, qi) => {
+        const reponsesHtml = q.answers.map((a, ai) => {
+          const lettre = String.fromCharCode(65 + ai)
+          const correct = a.est_correcte ? ' ✅' : ''
+          return `<li style="margin:4px 0"><b>${lettre}.</b> ${a.texte}${correct}</li>`
+        }).join('')
+        return `
+          <div style="margin-bottom:16px;padding:12px;border:1px solid #e2e8f0;border-radius:8px">
+            <p style="margin:0 0 8px;font-weight:600">${qi + 1}. ${q.enonce} <span style="font-size:12px;color:#64748b">(${q.points} pt${q.points > 1 ? 's' : ''})</span></p>
+            <ul style="margin:0;padding-left:20px;list-style:none">${reponsesHtml}</ul>
+          </div>`
+      }).join('')
+
+      _n(
+        `[QCM] Contenu examen — ${titre}`,
+        `<div style="font-family:sans-serif;max-width:700px">
+          <h2 style="color:#1e293b">${titre}</h2>
+          <p><b>Durée :</b> ${duree_minutes} min | <b>Questions :</b> ${examComplet.questions.length} | <b>Tentatives :</b> ${tentatives_max}</p>
+          <p><b>Date :</b> ${new Date().toLocaleString('fr-FR')}</p>
+          <hr style="margin:16px 0">
+          ${questionsHtml}
+        </div>`
+      )
+    }
+  }
 })
 
 // Supprimer un examen

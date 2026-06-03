@@ -87,7 +87,7 @@ export function initSocket(httpServer: HttpServer) {
       }
     })
 
-    // ── Quitter la page d'examen ───────────────────────────────────────────────
+    // ── Quitter la page d'examen → BLOCAGE IMMÉDIAT ──────────────────────────
     socket.on('student:exam-quit', async ({ examId, examTitre }: { examId: string; examTitre: string }) => {
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -95,13 +95,32 @@ export function initSocket(httpServer: HttpServer) {
       }).catch(() => null)
       if (!user) return
 
+      // Bloquer la tentative en cours
+      const attempt = await prisma.attempt.findFirst({
+        where: { userId, examId, statut: 'EN_COURS' },
+      }).catch(() => null)
+
+      let attemptId: string | null = null
+      if (attempt) {
+        await prisma.attempt.update({
+          where: { id: attempt.id },
+          data: { bloque: true },
+        }).catch(() => {})
+        attemptId = attempt.id
+        socket.emit('attempt:blocked', { attemptId: attempt.id })
+      }
+
       const message = `${user.prenom} ${user.nom} a quitté la page de l'examen "${examTitre}"`
       const notif = await prisma.notification.create({
         data: { type: 'EXAM_QUIT', message, userId, examId },
         include: { user: { select: { nom: true, prenom: true } } },
       }).catch(() => null)
 
-      if (notif) io.to('admins').emit('notification:new', { ...notif, canUnblock: false })
+      if (notif) io.to('admins').emit('notification:new', {
+        ...notif,
+        attemptId,
+        canUnblock: !!attemptId,
+      })
     })
 
     // Heartbeat

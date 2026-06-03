@@ -157,6 +157,21 @@ export default function TakeExam() {
     }
   }, [])
 
+  // Anti-triche : bloquer le partage/enregistrement d'écran via l'API navigateur
+  useEffect(() => {
+    if (!navigator.mediaDevices?.getDisplayMedia) return
+    const original = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices)
+    navigator.mediaDevices.getDisplayMedia = async () => {
+      if (examRef.current && attemptRef.current && !anticheatRef.current) {
+        emitTabChange(examRef.current.id, examRef.current.titre)
+      }
+      throw new DOMException('Partage d\'écran interdit pendant l\'examen.', 'NotAllowedError')
+    }
+    return () => {
+      navigator.mediaDevices.getDisplayMedia = original
+    }
+  }, [])
+
   // Chargement de l'examen
   const load = async () => {
     try {
@@ -349,7 +364,7 @@ export default function TakeExam() {
 
   return (
 
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 select-none flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 select-none flex flex-col" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
 
       {/* Modal de confirmation de soumission */}
       <Modal

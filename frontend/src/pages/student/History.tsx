@@ -39,8 +39,9 @@ export default function History() {
         <Card> <div className="text-center py-14"> <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 mb-4"> <svg className="h-7 w-7 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> </svg> </div> <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Aucun historique</h3> <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Vous n'avez pas encore passé d'examens</p> <Link to="/student/dashboard" className="mt-4 inline-block text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"> Voir les examens disponibles <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </Link> </div> </Card> ) : (
         <div className="space-y-3"> {attempts.map((attempt) => {
-            const isFinished = attempt.statut === 'TERMINE'
-            const passed = isFinished && (attempt.score || 0) >= 10
+            const isFinished       = attempt.statut === 'TERMINE'
+            const resultatsPublics = (attempt.exam as any)?.resultats_publics ?? false
+            const passed           = isFinished && resultatsPublics && (attempt.score || 0) >= 10
 
             return (
               <div
@@ -53,7 +54,7 @@ export default function History() {
                           : passed
                           ? 'bg-success-100 text-success-700 dark:bg-success-900/40 dark:text-success-300'
                           : 'bg-danger-100 text-danger-700 dark:bg-danger-900/40 dark:text-danger-300'
-                      }`}> {!isFinished ? 'En cours' : passed ? 'Réussi' : 'Non réussi'}
+                      }`}> {!isFinished ? 'En cours' : !resultatsPublics ? 'Terminé' : passed ? 'Réussi' : 'Non réussi'}
                       </span> </div> <div className="mt-1.5 flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400"> <span className="flex items-center gap-1"> <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /> </svg> {new Date(attempt.date_debut).toLocaleDateString('fr-FR', {
                           day: '2-digit',
                           month: 'short',
@@ -61,14 +62,19 @@ export default function History() {
                         })}
                       </span> <span className="flex items-center gap-1"> <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> </svg> {attempt.exam?.duree_minutes} min
                       </span> </div> </div> <div className="flex items-center gap-4 flex-shrink-0"> {isFinished ? (
-                      <> {/* Score avec barre */}
-                        <div className="text-right hidden sm:block"> <p className={`text-2xl font-bold tracking-tight ${
-                            passed ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'
-                          }`}> {attempt.score?.toFixed(1)}
-                            <span className="text-sm text-slate-400 dark:text-slate-500">/20</span> </p> <div className="mt-1 w-16 h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden ml-auto"> <div
-                              className={`h-full rounded-full ${passed ? 'bg-success-500' : 'bg-danger-500'}`}
-                              style={{ width: `${((attempt.score || 0) / 20) * 100}%` }}
-                            /> </div> </div> <Link
+                      <>
+                        {resultatsPublics ? (
+                          <div className="text-right hidden sm:block"> <p className={`text-2xl font-bold tracking-tight ${
+                              passed ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'
+                            }`}> {attempt.score?.toFixed(1)}
+                              <span className="text-sm text-slate-400 dark:text-slate-500">/20</span> </p> <div className="mt-1 w-16 h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden ml-auto"> <div
+                                className={`h-full rounded-full ${passed ? 'bg-success-500' : 'bg-danger-500'}`}
+                                style={{ width: `${((attempt.score || 0) / 20) * 100}%` }}
+                              /> </div> </div>
+                        ) : (
+                          <span className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 italic">Note en attente</span>
+                        )}
+                        <Link
                           to={`/student/results/${attempt.id}`}
                           className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                         > Détails

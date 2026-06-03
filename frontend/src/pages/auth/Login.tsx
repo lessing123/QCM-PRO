@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import Input from '../../components/common/Input'
@@ -14,6 +14,15 @@ export default function Login() {
   const { login } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    const reason = searchParams.get('reason')
+    if (reason === 'session_expired')
+      toast.error('Votre session a été fermée — connexion depuis un autre appareil.')
+    else if (reason === 'limit_reached')
+      toast.error('Limite de connexions simultanées atteinte.')
+  }, [])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()

@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const socket = getSocket()
     if (!socket) return
-    const handler = () => {
+    const onInvalidated = () => {
       disconnectSocket()
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
@@ -42,8 +42,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       window.location.href = '/login?reason=session_expired'
     }
-    socket.on('session:invalidated', handler)
-    return () => { socket.off('session:invalidated', handler) }
+    const onLimitReached = () => {
+      disconnectSocket()
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      setUser(null)
+      window.location.href = '/login?reason=limit_reached'
+    }
+    socket.on('session:invalidated', onInvalidated)
+    socket.on('session:limit_reached', onLimitReached)
+    return () => {
+      socket.off('session:invalidated', onInvalidated)
+      socket.off('session:limit_reached', onLimitReached)
+    }
   })
 
   const login = async (email: string, password: string): Promise<User> => {

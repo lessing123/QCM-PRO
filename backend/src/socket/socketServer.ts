@@ -31,6 +31,17 @@ export function initSocket(httpServer: HttpServer) {
   io.on('connection', async (socket: Socket) => {
     const { userId, role } = socket.data
 
+    // Limite de 3 sessions simultanées pour les admins
+    if (role === 'ADMIN') {
+      const activeSockets = await io.fetchSockets()
+      const count = activeSockets.filter(s => s.data.userId === userId && s.id !== socket.id).length
+      if (count >= 3) {
+        socket.emit('session:limit_reached', { reason: 'Limite de 3 connexions simultanées atteinte.' })
+        socket.disconnect(true)
+        return
+      }
+    }
+
     // Chaque utilisateur rejoint sa salle personnelle (pour le déblocage ciblé)
     socket.join(`user:${userId}`)
 

@@ -205,6 +205,7 @@ export default function TakeExam() {
   useEffect(() => {
     if (!exam) return
     const requestFs = async () => {
+      if (anticheatRef.current) return
       try { await document.documentElement.requestFullscreen() } catch { /* navigateur peut refuser */ }
     }
     requestFs()
@@ -435,7 +436,7 @@ export default function TakeExam() {
   return (
     <>
     {/* Overlay plein écran — sortie détectée */}
-    {fullscreenRequired && !isFullscreen && !isBlocked && (
+    {fullscreenRequired && !isFullscreen && !isBlocked && !anticheatDisabled && (
       <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/95 backdrop-blur-md">
         <div className="mx-4 w-full max-w-md space-y-6 rounded-[2rem] border border-white/10 bg-slate-900/95 p-6 shadow-modal sm:p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-warning-500 bg-warning-500/15">

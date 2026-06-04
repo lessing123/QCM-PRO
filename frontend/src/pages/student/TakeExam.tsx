@@ -26,8 +26,9 @@ export default function TakeExam() {
   const [skipped, setSkipped]         = useState<Set<number>>(new Set())
   const [, setTabCount]               = useState(0)
   const [isBlocked, setIsBlocked]     = useState(false)
-  const [isFullscreen, setIsFullscreen]           = useState(false)
+  const [isFullscreen, setIsFullscreen]             = useState(false)
   const [fullscreenRequired, setFullscreenRequired] = useState(false)
+  const [fsGranted, setFsGranted]                   = useState(() => anticheatDisabled)
 
   const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
   const saveRef          = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -204,11 +205,6 @@ export default function TakeExam() {
   // Plein écran obligatoire — sortie = incident signalé
   useEffect(() => {
     if (!exam) return
-    const requestFs = async () => {
-      if (anticheatRef.current) return
-      try { await document.documentElement.requestFullscreen() } catch { /* navigateur peut refuser */ }
-    }
-    requestFs()
 
     const onFsChange = () => {
       const inFs = !!document.fullscreenElement
@@ -435,6 +431,35 @@ export default function TakeExam() {
 
   return (
     <>
+    {/* Écran d'entrée plein écran — exige un clic utilisateur (restriction navigateur) */}
+    {!fsGranted && !anticheatDisabled && exam && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950 backdrop-blur-md">
+        <div className="mx-4 w-full max-w-md space-y-6 rounded-[2rem] border border-white/10 bg-slate-900/95 p-6 shadow-modal sm:p-8 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-primary-500 bg-primary-500/15">
+            <svg className="h-10 w-10 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white">{exam.titre}</h2>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              L'examen se déroule en <strong className="text-white">plein écran obligatoire</strong>.<br />
+              Quitter le plein écran sera signalé comme tentative de triche.
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              try { await document.documentElement.requestFullscreen() } catch { /* ignoré */ }
+              setFsGranted(true)
+            }}
+            className="w-full rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-semibold py-3 px-4 transition-colors"
+          >
+            Commencer en plein écran
+          </button>
+        </div>
+      </div>
+    )}
+
     {/* Overlay plein écran — sortie détectée */}
     {fullscreenRequired && !isFullscreen && !isBlocked && !anticheatDisabled && (
       <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/95 backdrop-blur-md">

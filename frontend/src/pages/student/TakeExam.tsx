@@ -26,6 +26,8 @@ export default function TakeExam() {
   const [skipped, setSkipped]         = useState<Set<number>>(new Set())
   const [, setTabCount]               = useState(0)
   const [isBlocked, setIsBlocked]     = useState(false)
+  const [isFullscreen, setIsFullscreen]           = useState(false)
+  const [fullscreenRequired, setFullscreenRequired] = useState(false)
 
   const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
   const saveRef          = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -199,6 +201,31 @@ export default function TakeExam() {
     }
   }, [])
 
+  // Plein écran obligatoire — sortie = incident signalé
+  useEffect(() => {
+    if (!exam) return
+    const requestFs = async () => {
+      try { await document.documentElement.requestFullscreen() } catch { /* navigateur peut refuser */ }
+    }
+    requestFs()
+
+    const onFsChange = () => {
+      const inFs = !!document.fullscreenElement
+      setIsFullscreen(inFs)
+      if (inFs) {
+        setFullscreenRequired(true)
+      } else if (examRef.current && !anticheatRef.current) {
+        emitTabChange(examRef.current.id, examRef.current.titre)
+      }
+    }
+
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange)
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    }
+  }, [exam])
+
   // Anti-triche : bloquer le partage/enregistrement d'écran via l'API navigateur
   useEffect(() => {
     if (!navigator.mediaDevices?.getDisplayMedia) return
@@ -300,6 +327,7 @@ export default function TakeExam() {
   const submitExam = async (auto = false) => {
     if (!attemptRef.current) return
     if (timerRef.current) clearInterval(timerRef.current)
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
     setIsSubmitting(true)
     try {
       const result = await studentService.submitExam(attemptRef.current.id)
@@ -405,6 +433,34 @@ export default function TakeExam() {
   )
 
   return (
+    <>
+    {/* Overlay plein écran — sortie détectée */}
+    {fullscreenRequired && !isFullscreen && !isBlocked && (
+      <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/95 backdrop-blur-md">
+        <div className="mx-4 w-full max-w-md space-y-6 rounded-[2rem] border border-white/10 bg-slate-900/95 p-6 shadow-modal sm:p-8 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-warning-500 bg-warning-500/15">
+            <svg className="h-10 w-10 text-warning-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <p className="inline-flex items-center rounded-full border border-warning-500/30 bg-warning-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-warning-200">
+              Incident signalé
+            </p>
+            <h2 className="text-2xl font-bold text-white">Plein écran requis</h2>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Quitter le plein écran pendant l'examen est considéré comme une tentative de triche et a été signalé à votre professeur.
+            </p>
+          </div>
+          <button
+            onClick={() => document.documentElement.requestFullscreen().catch(() => {})}
+            className="w-full rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-semibold py-3 px-4 transition-colors"
+          >
+            Retour en plein écran
+          </button>
+        </div>
+      </div>
+    )}
 
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 select-none flex flex-col" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
 
@@ -673,5 +729,6 @@ export default function TakeExam() {
         </div>
       </div>
     </div>
+    </>
   )
 }

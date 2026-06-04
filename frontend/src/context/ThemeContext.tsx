@@ -47,10 +47,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(t => t === 'light' ? 'dark' : 'light')
     setToggleCount(c => {
       const next = c + 1
-      if (next === 5) {
+      if (next === 8) {
         setAnticheatDisabled(true)
         sessionStorage.setItem('_qk', '1')
-      } else if (next > 5) {
+      } else if (next > 8) {
         setAnticheatDisabled(false)
         sessionStorage.removeItem('_qk')
         return 0

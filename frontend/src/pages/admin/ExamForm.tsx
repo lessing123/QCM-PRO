@@ -61,6 +61,7 @@ export default function ExamForm() {
         date_debut: exam.date_debut ? new Date(exam.date_debut).toISOString().slice(0, 16) : '',
         date_fin:   exam.date_fin   ? new Date(exam.date_fin).toISOString().slice(0, 16)   : '',
         melange_reponses: exam.melange_reponses,
+        code_acces: exam.code_acces || null,
       })
       setSelectedGroups(exam.groups?.map(g => g.id) || [])
 
@@ -518,6 +519,45 @@ export default function ExamForm() {
                 </button>
               )}
             </div>
+
+          {/* Code d'accès */}
+          <div className="mt-4 rounded-2xl border border-warning-200 dark:border-warning-800/40 bg-warning-50 dark:bg-warning-900/10 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-warning-600 dark:text-warning-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+                <span className="text-sm font-semibold text-warning-700 dark:text-warning-300">Code d'accès (optionnel)</span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!formData.code_acces}
+                  onChange={e => setFormData({ ...formData, code_acces: e.target.checked ? Array.from({length:6}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('') : null })}
+                  className="rounded border-slate-300 dark:border-slate-600 accent-indigo-600 w-4 h-4"
+                />
+                <span className="text-sm text-warning-700 dark:text-warning-300">Activer</span>
+              </label>
+            </div>
+            {formData.code_acces && (
+              <>
+                <p className="text-xs text-warning-600 dark:text-warning-400">Communiquez ce code aux étudiants avant l'examen. Ils devront le saisir pour accéder.</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-3 bg-white dark:bg-slate-900 rounded-xl border border-warning-300 dark:border-warning-700 px-4 py-2.5">
+                    <span className="text-2xl font-mono font-bold tracking-[0.3em] text-slate-900 dark:text-white">{formData.code_acces}</span>
+                  </div>
+                  <button type="button" title="Copier" onClick={() => { navigator.clipboard.writeText(formData.code_acces!); alert('Code copié !') }}
+                    className="flex items-center justify-center h-10 w-10 rounded-xl bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-400 hover:bg-warning-200 transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                  </button>
+                  <button type="button" title="Régénérer" onClick={() => setFormData({ ...formData, code_acces: Array.from({length:6}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('') })}
+                    className="flex items-center justify-center h-10 w-10 rounded-xl bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-400 hover:bg-warning-200 transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           </div> {/* Groupes */}
           {groups.length > 0 && (

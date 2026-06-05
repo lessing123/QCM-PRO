@@ -98,6 +98,9 @@ export default function ExamInstructions() {
   const [exam, setExam]       = useState<Exam | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isStarting, setIsStarting] = useState(false)
+  const [codeInput, setCodeInput] = useState('')
+  const [codeError, setCodeError] = useState('')
+  const [codeStep, setCodeStep] = useState(false)
 
   useEffect(() => { if (id) load() }, [id])
 
@@ -113,12 +116,22 @@ export default function ExamInstructions() {
   }
 
   const handleStart = async () => {
+    if ((exam as any).requires_code && !codeStep) {
+      setCodeStep(true)
+      return
+    }
     setIsStarting(true)
+    setCodeError('')
     try {
-      await studentService.startExam(id!)
+      await studentService.startExam(id!, codeInput || undefined)
       navigate(`/student/exams/${id}/take`)
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Erreur')
+      const msg = err.response?.data?.error || 'Erreur'
+      if (err.response?.status === 403 && msg.includes('code')) {
+        setCodeError('Code incorrect. Vérifiez avec votre professeur.')
+      } else {
+        toast.error(msg)
+      }
     } finally {
       setIsStarting(false)
     }
@@ -241,16 +254,43 @@ export default function ExamInstructions() {
         </div>
       </div>
 
+      {/* Saisie du code d'accès */}
+      {codeStep && (exam as any).requires_code && (
+        <div className="rounded-2xl border border-primary-200 dark:border-primary-800/50 bg-primary-50 dark:bg-primary-950/30 p-5 space-y-4">
+          <div className="flex items-center gap-2.5">
+            <svg className="w-5 h-5 text-primary-600 dark:text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+            </svg>
+            <p className="text-sm font-bold text-primary-700 dark:text-primary-300">Code d'accès requis</p>
+          </div>
+          <p className="text-sm text-primary-600 dark:text-primary-400">
+            Votre professeur vous a communiqué un code à 6 caractères. Saisissez-le pour accéder à l'examen.
+          </p>
+          <input
+            type="text"
+            value={codeInput}
+            onChange={e => { setCodeInput(e.target.value.toUpperCase()); setCodeError('') }}
+            placeholder="Ex : AB3K7Z"
+            maxLength={8}
+            className={`w-full text-center text-2xl font-mono tracking-[0.4em] rounded-xl border-2 px-4 py-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-colors ${codeError ? 'border-danger-400 dark:border-danger-600' : 'border-primary-300 dark:border-primary-700 focus:border-primary-500'}`}
+          />
+          {codeError && (
+            <p className="text-sm text-danger-600 dark:text-danger-400 font-medium">{codeError}</p>
+          )}
+        </div>
+      )}
+
       {/* Action */}
       <div className="flex flex-col items-center gap-3 pb-4">
         {exam.canTake ? (
           <>
-            <Button size="lg" onClick={handleStart} isLoading={isStarting} className="w-full sm:w-auto px-10">
-              {isStarting ? 'Démarrage…' : "Commencer l'examen"}
+            <Button size="lg" onClick={handleStart} isLoading={isStarting} className="w-full sm:w-auto px-10"
+              disabled={codeStep && !codeInput.trim()}>
+              {isStarting ? 'Démarrage…' : codeStep ? 'Valider le code' : "Commencer l'examen"}
             </Button>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            {!codeStep && <p className="text-xs text-slate-400 dark:text-slate-500">
               En cliquant, vous acceptez de respecter les règles de l'examen
-            </p>
+            </p>}
           </>
         ) : (
           <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800/40">

@@ -17,8 +17,8 @@ export const studentService = {
   },
 
   // Démarrer un examen
-  async startExam(id: string): Promise<{ message: string; attempt: Attempt; exam: Exam }> {
-    const response = await api.post(`/student/exams/${id}/start`)
+  async startExam(id: string, code_acces?: string): Promise<{ message: string; attempt: Attempt; exam: Exam }> {
+    const response = await api.post(`/student/exams/${id}/start`, code_acces ? { code_acces } : {})
     return response.data
   },
 

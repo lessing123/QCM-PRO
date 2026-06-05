@@ -5,6 +5,8 @@ import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
 import { ExamResults } from '../../types'
 import toast from 'react-hot-toast'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 export default function Results() {
   const { examId } = useParams()
@@ -41,15 +43,76 @@ export default function Results() {
     }
   }
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = () => {
+    if (!results) return
     try {
-      const blob = await examService.exportResultsPdf(examId!)
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `resultats_${results?.exam.titre}.pdf`
-      a.click()
-      window.URL.revokeObjectURL(url)
+      const doc = new jsPDF()
+      const primary: [number, number, number] = [99, 102, 241]
+
+      // En-tête
+      doc.setFontSize(18)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 41, 59)
+      doc.text(`Résultats : ${results.exam.titre}`, 14, 20)
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(100, 116, 139)
+      doc.text(`Généré le ${new Date().toLocaleString('fr-FR')}`, 14, 27)
+
+      // Statistiques
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 41, 59)
+      doc.text('Statistiques', 14, 38)
+
+      autoTable(doc, {
+        startY: 42,
+        head: [['Tentatives', 'Moyenne /20', 'Minimum /20', 'Maximum /20']],
+        body: [[
+          String(results.stats.total),
+          results.stats.moyenne.toFixed(2),
+          String(results.stats.min),
+          String(results.stats.max),
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: primary, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 10, halign: 'center' },
+        columnStyles: { 0: { halign: 'center' } },
+      })
+
+      const y1 = (doc as any).lastAutoTable?.finalY ?? 65
+
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 41, 59)
+      doc.text('Liste des étudiants', 14, y1 + 12)
+
+      autoTable(doc, {
+        startY: y1 + 16,
+        head: [['Nom', 'Prénom', 'Email', 'Score /20', 'Date de fin']],
+        body: sorted.map(a => [
+          a.user?.nom || '',
+          a.user?.prenom || '',
+          a.user?.email || '',
+          a.score != null ? a.score.toFixed(2) : '—',
+          new Date(a.date_fin || a.date_debut).toLocaleString('fr-FR'),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: primary, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 3) {
+            const val = parseFloat(data.cell.text[0])
+            if (!isNaN(val)) {
+              data.cell.styles.textColor = val >= 10 ? [22, 163, 74] : [220, 38, 38]
+              data.cell.styles.fontStyle = 'bold'
+            }
+          }
+        },
+      })
+
+      doc.save(`resultats_${results.exam.titre.replace(/[^a-z0-9]/gi, '_')}.pdf`)
       toast.success('PDF généré')
     } catch {
       toast.error("Erreur lors de l'export PDF")

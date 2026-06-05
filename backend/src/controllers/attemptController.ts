@@ -46,8 +46,10 @@ export const getAvailableExams = asyncHandler(async (req: AuthRequest, res: Resp
       where: { userId: req.user!.id, examId: exam.id, statut: 'EN_COURS' },
       orderBy: { date_debut: 'desc' },
     })
+    const { code_acces, ...examSafe } = exam as any
     return {
-      ...exam,
+      ...examSafe,
+      requires_code: !!code_acces,
       attemptsCount: attemptCount,
       maxAttempts: exam.tentatives_max,
       canTake: attemptCount < exam.tentatives_max,
@@ -79,9 +81,11 @@ export const getExamDetails = asyncHandler(async (req: AuthRequest, res: Respons
     orderBy: { date_debut: 'desc' },
   })
 
+  const { code_acces: _c, ...examSafe } = exam as any
   res.json({
     exam: {
-      ...exam,
+      ...examSafe,
+      requires_code: !!_c,
       attemptsCount: attemptCount,
       canTake: attemptCount < exam.tentatives_max,
       currentAttemptId: currentAttempt?.id || null,
@@ -103,6 +107,14 @@ export const startExam = asyncHandler(async (req: AuthRequest, res: Response) =>
     },
   })
   if (!exam) return res.status(403).json({ error: 'Examen non disponible' })
+
+  // Vérification du code d'accès
+  if ((exam as any).code_acces) {
+    const provided = req.body?.code_acces
+    if (!provided || provided.toUpperCase() !== (exam as any).code_acces) {
+      return res.status(403).json({ error: 'Code d\'accès incorrect' })
+    }
+  }
 
   const attemptCount = await prisma.attempt.count({
     where: { userId: req.user!.id, examId: id, statut: 'TERMINE' },

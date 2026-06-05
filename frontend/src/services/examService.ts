@@ -54,6 +54,9 @@ export const examService = {
   async getAdminStats(): Promise<AdminStats> {
     return (await api.get('/admin/stats')).data
   },
+  async getExamLive(examId: string): Promise<any> {
+    return (await api.get(`/admin/live/${examId}`)).data
+  },
 
   // Upload d'image pour une réponse
   async uploadImage(file: File): Promise<{ url: string }> {

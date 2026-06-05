@@ -40,9 +40,14 @@ export const getExamById = asyncHandler(async (req: AuthRequest, res: Response) 
   res.json({ exam })
 })
 
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
 // Créer un examen
 export const createExam = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { titre, description, duree_minutes, date_debut, date_fin, tentatives_max, melange_questions, melange_reponses, groupIds } = examSchema.parse(req.body)
+  const { titre, description, duree_minutes, date_debut, date_fin, tentatives_max, melange_questions, melange_reponses, groupIds, code_acces } = examSchema.parse(req.body)
 
   const exam = await prisma.exam.create({
     data: {
@@ -54,6 +59,7 @@ export const createExam = asyncHandler(async (req: AuthRequest, res: Response) =
       tentatives_max,
       melange_questions,
       melange_reponses,
+      code_acces: code_acces === undefined ? null : (code_acces || genCode()),
       createdById: req.user!.id,
       groups: groupIds ? { connect: groupIds.map(id => ({ id })) } : undefined,
     },
@@ -68,7 +74,7 @@ export const createExam = asyncHandler(async (req: AuthRequest, res: Response) =
 // Mettre à jour un examen
 export const updateExam = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = idParamSchema.parse(req.params)
-  const { titre, description, duree_minutes, date_debut, date_fin, tentatives_max, melange_questions, melange_reponses, groupIds } = examSchema.parse(req.body)
+  const { titre, description, duree_minutes, date_debut, date_fin, tentatives_max, melange_questions, melange_reponses, groupIds, code_acces } = examSchema.parse(req.body)
 
   const existingExam = await prisma.exam.findUnique({ where: { id } })
   if (!existingExam) {
@@ -86,6 +92,7 @@ export const updateExam = asyncHandler(async (req: AuthRequest, res: Response) =
       tentatives_max,
       melange_questions,
       melange_reponses,
+      code_acces: code_acces === undefined ? undefined : (code_acces || null),
       groups: groupIds ? { set: groupIds.map(gid => ({ id: gid })) } : undefined,
     },
     include: {

@@ -27,6 +27,7 @@ export const examSchema = z.object({
   melange_questions: z.boolean().default(false),
   melange_reponses: z.boolean().default(false),
   groupIds: z.array(z.string()).optional(),
+  code_acces: z.string().max(8).optional().nullable(),
 })
 
 // ========== QUESTIONS ==========

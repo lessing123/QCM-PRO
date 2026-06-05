@@ -9,6 +9,7 @@ import ExamForm from './pages/admin/ExamForm'
 import StudentList from './pages/admin/StudentList'
 import GroupList from './pages/admin/GroupList'
 import Results from './pages/admin/Results'
+import ExamMonitor from './pages/admin/ExamMonitor'
 import Stats from './pages/admin/Stats'
 import AdminSettings from './pages/admin/AdminSettings'
 import AdminGuide from './pages/admin/AdminGuide'
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="classes" element={<GroupList />} />
         <Route path="groups" element={<Navigate to="/admin/classes" replace />} />
         <Route path="results/:examId" element={<Results />} />
+        <Route path="exams/:examId/monitor" element={<ExamMonitor />} />
         <Route path="stats/:examId" element={<Stats />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="guide" element={<AdminGuide />} />

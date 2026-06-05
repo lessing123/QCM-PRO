@@ -46,6 +46,8 @@ export interface Exam {
   melange_questions: boolean
   melange_reponses: boolean
   resultats_publics?: boolean
+  code_acces?: string | null
+  requires_code?: boolean
   createdAt: string
   createdById: string
   createdBy?: { id: string; nom: string; prenom: string }
@@ -157,6 +159,7 @@ export interface ExamFormData {
   melange_questions: boolean
   melange_reponses: boolean
   groupIds?: string[]
+  code_acces?: string | null
 }
 
 export interface QuestionFormData {

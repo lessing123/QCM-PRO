@@ -177,6 +177,50 @@ export const exportResultsPdf = asyncHandler(async (req: AuthRequest, res: Respo
   res.send(pdf)
 })
 
+// Surveillance en temps réel d'un examen
+export const getExamLive = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { examId } = examIdParamSchema.parse(req.params)
+
+  const exam = await prisma.exam.findUnique({
+    where: { id: examId },
+    include: {
+      groups: {
+        include: {
+          users: {
+            where: { role: 'STUDENT' },
+            select: { id: true, nom: true, prenom: true, email: true, is_online: true },
+          },
+        },
+      },
+    },
+  })
+  if (!exam) return res.status(404).json({ error: 'Examen non trouvé' })
+
+  const attempts = await prisma.attempt.findMany({
+    where: { examId },
+    select: { userId: true, statut: true, bloque: true },
+  })
+  const attemptMap = new Map(attempts.map(a => [a.userId, a]))
+
+  const groups = exam.groups.map(group => {
+    const students = group.users.map(s => {
+      const att = attemptMap.get(s.id)
+      return { ...s, attempt_status: att?.statut || null, bloque: att?.bloque || false }
+    })
+    return {
+      id: group.id,
+      nom: group.nom,
+      total: students.length,
+      connected: students.filter(s => s.is_online).length,
+      in_exam: students.filter(s => s.attempt_status === 'EN_COURS').length,
+      finished: students.filter(s => s.attempt_status === 'TERMINE').length,
+      students,
+    }
+  })
+
+  res.json({ exam: { id: exam.id, titre: exam.titre }, groups })
+})
+
 // Statistiques globales du dashboard admin
 export const getAdminStats = asyncHandler(async (req: AuthRequest, res: Response) => {
   const examCount = await prisma.exam.count()

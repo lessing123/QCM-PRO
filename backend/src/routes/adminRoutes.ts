@@ -60,6 +60,7 @@ router.get('/results/:examId',          adminController.getExamResults)
 router.get('/stats/:examId',            adminController.getExamStats)
 router.get('/export/:examId',           adminController.exportResults)
 router.get('/export/:examId/pdf',       adminController.exportResultsPdf)
+router.get('/live/:examId',             adminController.getExamLive)
 router.get('/stats',                    adminController.getAdminStats)
 
 // Notifications

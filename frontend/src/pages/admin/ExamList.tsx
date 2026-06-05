@@ -202,7 +202,7 @@ export default function ExamList() {
                   <Link to={`/admin/exams/${exam.id}/monitor`}>
                     <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-1">
                       <span className="h-1.5 w-1.5 rounded-full bg-success-500 animate-pulse" />
-                      Live
+                      Surveiller
                     </Button>
                   </Link>
                   <Link to={`/admin/results/${exam.id}`}>

@@ -31,11 +31,11 @@ export default function StudentGuide() {
         <header className="border-b border-slate-200 pb-8 dark:border-slate-700">
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary-700 dark:text-primary-400">QCM Pro</p>
           <h2 className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">Guide Étudiant</h2>
-          <p className="mt-2 text-slate-500 dark:text-slate-400">Plateforme d'examens et de suivi — Version 1.0</p>
+          <p className="mt-2 text-slate-500 dark:text-slate-400">Plateforme d'examens et de suivi — Version 2.0</p>
         </header>
 
         <Section num="1" title="Connexion à la plateforme">
-          <p>Pour accéder à la plateforme, rendez-vous sur l'URL fournie par votre professeur et connectez-vous avec votre adresse email et votre mot de passe.</p>
+          <p>Rendez-vous sur l'URL fournie par votre professeur et connectez-vous avec votre adresse email et votre mot de passe.</p>
           <SubSection title="Première connexion">
             <ol className="space-y-1 pl-5 list-decimal text-slate-700 dark:text-slate-300">
               <li>Saisissez l'email et le mot de passe temporaire communiqués par votre administrateur.</li>
@@ -44,66 +44,103 @@ export default function StudentGuide() {
               <li>Confirmez-le et validez. Vous accédez ensuite à votre tableau de bord.</li>
             </ol>
           </SubSection>
+          <SubSection title="Connexion unique">
+            <p className="text-slate-700 dark:text-slate-300">Un seul appareil peut être connecté à votre compte à la fois. Si vous vous connectez depuis un deuxième appareil, la première session est <strong>automatiquement déconnectée</strong>.</p>
+          </SubSection>
+          <SubSection title="Compte désactivé">
+            <p className="text-slate-700 dark:text-slate-300">Si votre compte a été désactivé par l'administrateur, un message vous l'indique à la connexion. Contactez votre professeur pour rétablir l'accès.</p>
+          </SubSection>
           <SubSection title="Mot de passe oublié">
-            <p className="text-slate-700 dark:text-slate-300">Contactez votre professeur ou administrateur pour qu'il réinitialise votre mot de passe. Un mot de passe temporaire vous sera communiqué.</p>
+            <p className="text-slate-700 dark:text-slate-300">Contactez votre professeur ou administrateur pour une réinitialisation. Un mot de passe temporaire vous sera communiqué.</p>
           </SubSection>
         </Section>
 
         <Section num="2" title="Tableau de bord">
-          <p className="text-slate-700 dark:text-slate-300">Après connexion, vous arrivez sur votre tableau de bord qui affiche :</p>
+          <p className="text-slate-700 dark:text-slate-300">Après connexion, votre tableau de bord affiche :</p>
           <ul className="mt-2 space-y-1 pl-5 list-disc text-slate-700 dark:text-slate-300">
-            <li><strong>Examens disponibles</strong> — les examens que vous pouvez passer dès maintenant.</li>
-            <li><strong>Examens terminés</strong> — les examens pour lesquels vous avez épuisé vos tentatives.</li>
+            <li><strong>Examens disponibles</strong> — les examens auxquels vous pouvez accéder maintenant.</li>
+            <li><strong>Examens planifiés</strong> — examens avec une date d'ouverture future.</li>
+            <li><strong>Examens terminés</strong> — examens pour lesquels vous avez épuisé vos tentatives.</li>
           </ul>
-          <p className="mt-3 text-slate-700 dark:text-slate-300">Utilisez le bouton <em>Historique</em> pour consulter toutes vos tentatives passées.</p>
+          <p className="mt-3 text-slate-700 dark:text-slate-300">Utilisez l'onglet <em>Historique</em> pour consulter toutes vos tentatives passées avec les scores publiés.</p>
         </Section>
 
         <Section num="3" title="Passer un examen">
-          <SubSection title="Démarrer">
-            <ol className="space-y-1 pl-5 list-decimal text-slate-700 dark:text-slate-300">
-              <li>Cliquez sur un examen disponible depuis votre tableau de bord.</li>
-              <li>Lisez attentivement les instructions : durée, nombre de questions, tentatives autorisées.</li>
-              <li>Cliquez sur <em>Commencer l'examen</em> quand vous êtes prêt. Le chronomètre démarre immédiatement.</li>
-            </ol>
-          </SubSection>
-          <SubSection title="Pendant l'examen">
-            <ul className="space-y-1 pl-5 list-disc text-slate-700 dark:text-slate-300">
-              <li>Répondez à chaque question en cochant la ou les réponses qui vous semblent correctes.</li>
-              <li>Le chronomètre en haut de l'écran indique le temps restant.</li>
-              <li>Vous pouvez naviguer entre les questions librement.</li>
-              <li>Ne fermez pas l'onglet ni le navigateur pendant l'examen — votre tentative serait comptabilisée.</li>
-              <li>À la fin du temps imparti, l'examen est automatiquement soumis.</li>
+          <SubSection title="Code d'accès">
+            <p className="text-slate-700 dark:text-slate-300">Certains examens nécessitent un <strong>code d'accès à 6 caractères</strong> communiqué oralement par votre professeur avant l'examen.</p>
+            <ul className="mt-2 space-y-1 pl-5 list-disc text-slate-700 dark:text-slate-300">
+              <li>Sur la page des instructions, un champ de saisie apparaît si un code est requis.</li>
+              <li>Saisissez le code en majuscules et cliquez sur <em>Valider le code</em>.</li>
+              <li>En cas d'erreur, vérifiez le code avec votre professeur.</li>
             </ul>
           </SubSection>
-          <SubSection title="Soumettre">
-            <p className="text-slate-700 dark:text-slate-300">Cliquez sur <em>Terminer l'examen</em> une fois toutes vos réponses renseignées. Une confirmation vous sera demandée avant soumission définitive.</p>
+
+          <SubSection title="Plein écran obligatoire">
+            <p className="text-slate-700 dark:text-slate-300">Lorsque vous cliquez sur <em>Commencer en plein écran</em>, le navigateur passe en mode plein écran. <strong>Il est interdit de quitter ce mode pendant l'examen.</strong></p>
+            <ul className="mt-2 space-y-1 pl-5 list-disc text-slate-700 dark:text-slate-300">
+              <li>Quitter le plein écran (touche Échap, etc.) déclenche un incident signalé à votre professeur.</li>
+              <li>Un bouton <em>Retour en plein écran</em> apparaît pour reprendre l'examen.</li>
+            </ul>
+          </SubSection>
+
+          <SubSection title="Pendant l'examen">
+            <ul className="space-y-1 pl-5 list-disc text-slate-700 dark:text-slate-300">
+              <li>Répondez à chaque question en cochant la ou les réponses correctes.</li>
+              <li>Le chronomètre en haut indique le temps restant.</li>
+              <li>Naviguez librement entre les questions via les boutons ou les points en bas.</li>
+              <li>Vos réponses sont <strong>sauvegardées automatiquement</strong> — même en cas de perte de connexion temporaire.</li>
+              <li>À la fin du temps imparti, l'examen est soumis <strong>automatiquement</strong>.</li>
+            </ul>
+          </SubSection>
+
+          <SubSection title="Vérification avant soumission">
+            <p className="text-slate-700 dark:text-slate-300">En cliquant sur <em>Soumettre l'examen</em>, vous accédez à un <strong>écran de vérification</strong> avant la soumission définitive :</p>
+            <ul className="mt-2 space-y-1 pl-5 list-disc text-slate-700 dark:text-slate-300">
+              <li>Toutes vos réponses sont listées avec leur texte sélectionné.</li>
+              <li>Les questions sans réponse sont mises en évidence en orange avec un lien direct pour y retourner.</li>
+              <li>Cliquer sur <em>Confirmer la soumission</em> valide définitivement l'examen.</li>
+            </ul>
+            <p className="mt-2 text-slate-600 dark:text-slate-400 text-sm">Prenez le temps de vérifier chaque réponse avant de confirmer — c'est irréversible.</p>
           </SubSection>
         </Section>
 
         <Section num="4" title="Après l'examen">
           <SubSection title="Récapitulatif de vos réponses">
-            <p className="text-slate-700 dark:text-slate-300">Immédiatement après l'examen, vous accédez au récapitulatif qui affiche <strong>uniquement vos réponses</strong>. Les bonnes réponses ne sont pas affichées.</p>
+            <p className="text-slate-700 dark:text-slate-300">Immédiatement après l'examen, vous accédez au récapitulatif qui affiche <strong>uniquement vos réponses sélectionnées</strong>. Les bonnes réponses ne sont jamais affichées.</p>
           </SubSection>
           <SubSection title="Note et résultats">
-            <p className="text-slate-700 dark:text-slate-300">Votre note sur 20 s'affiche dès que votre professeur la publie. Jusqu'à ce moment, la mention <em>Note en attente</em> apparaît à la place du score.</p>
+            <p className="text-slate-700 dark:text-slate-300">Votre note sur 20 s'affiche dès que votre professeur la publie. Jusqu'à ce moment, la mention <em>Terminé</em> apparaît à la place du score dans votre historique.</p>
           </SubSection>
           <SubSection title="Historique">
-            <p className="text-slate-700 dark:text-slate-300">Consultez toutes vos tentatives passées depuis l'onglet <em>Historique</em> dans la barre de navigation. Vous y retrouvez vos scores et les détails de chaque examen.</p>
+            <p className="text-slate-700 dark:text-slate-300">Consultez toutes vos tentatives passées depuis l'onglet <em>Historique</em> dans la barre de navigation.</p>
           </SubSection>
         </Section>
 
-        <Section num="5" title="Règles importantes">
+        <Section num="5" title="Système de sécurité">
+          <p className="text-slate-700 dark:text-slate-300">La plateforme dispose d'un <strong>système de sécurité de très haut niveau</strong>. Tout comportement suspect est signalé en temps réel à votre professeur et peut entraîner la suspension immédiate de votre examen.</p>
+          <ul className="mt-3 space-y-2 pl-5 list-disc text-slate-700 dark:text-slate-300">
+            <li><strong>Plein écran</strong> — quitter le plein écran pendant l'examen est détecté et signalé.</li>
+            <li><strong>Changement d'onglet ou de fenêtre</strong> — toute navigation hors de la page d'examen est détectée.</li>
+            <li><strong>Boutons ← → du navigateur</strong> — désactivés pendant l'examen.</li>
+            <li><strong>Rechargement de la page (F5)</strong> — entraîne la suspension de votre examen.</li>
+            <li><strong>Partage d'écran</strong> — interdit et bloqué automatiquement par le navigateur.</li>
+            <li><strong>Session unique</strong> — un seul appareil connecté à la fois ; toute connexion depuis un autre appareil vous déconnecte.</li>
+            <li><strong>Suspension</strong> — en cas d'incident, votre examen est gelé et le chronomètre s'arrête jusqu'au déblocage par votre professeur. Votre progression est conservée.</li>
+          </ul>
+        </Section>
+
+        <Section num="6" title="Conseils pratiques">
           <ul className="space-y-2 pl-5 list-disc text-slate-700 dark:text-slate-300">
-            <li>Chaque examen a un nombre maximum de tentatives fixé par votre professeur.</li>
-            <li>Le chronomètre tourne en continu — même si vous quittez la page.</li>
-            <li>Toute tentative commencée est comptabilisée, même sans soumission manuelle.</li>
-            <li>Les réponses correctes ne sont jamais affichées à la fin de l'examen.</li>
-            <li>En cas de problème technique, prévenez immédiatement votre professeur.</li>
+            <li>Utilisez un ordinateur avec une connexion Internet stable.</li>
+            <li>Fermez tous les autres onglets et applications avant de commencer.</li>
+            <li>Mémorisez le code d'accès communiqué par votre professeur — ne le partagez pas.</li>
+            <li>En cas de coupure réseau, vos réponses sont sauvegardées localement et resynchronisées automatiquement à la reconnexion.</li>
+            <li>En cas de problème technique, signalez-le immédiatement à votre professeur avant de tenter toute manipulation.</li>
           </ul>
         </Section>
 
         <footer className="border-t border-slate-200 pt-6 text-center text-xs text-slate-400 dark:border-slate-700">
-          QCM Pro — Guide Étudiant v1.0 · Tous droits réservés
+          QCM Pro — Guide Étudiant v2.0 · Tous droits réservés
         </footer>
       </div>
 

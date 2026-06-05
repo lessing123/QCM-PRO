@@ -67,7 +67,6 @@ model Exam {
   melange_questions Boolean   @default(false)
   melange_reponses  Boolean   @default(false)
   resultats_publics Boolean   @default(false)
-  notif_sent        Boolean   @default(false)
   code_acces        String?   @db.VarChar(8)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

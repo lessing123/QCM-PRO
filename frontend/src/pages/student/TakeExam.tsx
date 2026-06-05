@@ -8,13 +8,11 @@ import CircularTimer from '../../components/common/CircularTimer'
 import { Exam, Attempt } from '../../types'
 import { resolveMediaUrl } from '../../utils/media'
 import toast from 'react-hot-toast'
-import { useTheme } from '../../context/ThemeContext'
+
 
 export default function TakeExam() {
   const { id }      = useParams()
   const navigate    = useNavigate()
-  const { anticheatDisabled } = useTheme()
-
   const [exam, setExam]               = useState<Exam | null>(null)
   const [attempt, setAttempt]         = useState<Attempt | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -30,18 +28,15 @@ export default function TakeExam() {
   const [showReview, setShowReview]   = useState(false)
   const [isFullscreen, setIsFullscreen]             = useState(false)
   const [fullscreenRequired, setFullscreenRequired] = useState(false)
-  const [fsGranted, setFsGranted]                   = useState(() => anticheatDisabled)
+  const [fsGranted, setFsGranted]                   = useState(false)
 
   const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
   const saveRef          = useRef<ReturnType<typeof setTimeout> | null>(null)
   const examRef          = useRef<Exam | null>(null)
   const attemptRef       = useRef<Attempt | null>(null)
-  const anticheatRef     = useRef(anticheatDisabled)
-
   useEffect(() => { if (id) load() }, [id])
-  useEffect(() => { examRef.current        = exam             }, [exam])
-  useEffect(() => { attemptRef.current     = attempt          }, [attempt])
-  useEffect(() => { anticheatRef.current   = anticheatDisabled }, [anticheatDisabled])
+  useEffect(() => { examRef.current    = exam    }, [exam])
+  useEffect(() => { attemptRef.current = attempt }, [attempt])
 
   // Timer
   useEffect(() => {
@@ -91,7 +86,6 @@ export default function TakeExam() {
 
     const trigger = (reason: string) => {
       if (!active || !examRef.current) return
-      if (anticheatRef.current) return
       const now = Date.now()
       if (now - lastTrigger < 1500) return   // anti-doublon 1.5s
       lastTrigger = now
@@ -150,7 +144,6 @@ export default function TakeExam() {
       // Re-pousser immédiatement pour annuler la navigation
       window.history.pushState({ examLock: true }, '', window.location.href)
 
-      if (anticheatRef.current) return
       if (!examRef.current || !attemptRef.current) return
 
       emitExamQuit(examRef.current.id, examRef.current.titre)
@@ -178,7 +171,6 @@ export default function TakeExam() {
   // sendBeacon garantit l'envoi même si la page se ferme (contrairement à socket)
   useEffect(() => {
     const handler = () => {
-      if (anticheatRef.current) return
       if (!attemptRef.current) return
       const token = localStorage.getItem('accessToken')
       if (token) {
@@ -213,7 +205,7 @@ export default function TakeExam() {
       setIsFullscreen(inFs)
       if (inFs) {
         setFullscreenRequired(true)
-      } else if (examRef.current && !anticheatRef.current) {
+      } else if (examRef.current) {
         emitTabChange(examRef.current.id, examRef.current.titre)
       }
     }
@@ -230,7 +222,7 @@ export default function TakeExam() {
     if (!navigator.mediaDevices?.getDisplayMedia) return
     const original = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices)
     navigator.mediaDevices.getDisplayMedia = async () => {
-      if (examRef.current && attemptRef.current && !anticheatRef.current) {
+      if (examRef.current && attemptRef.current) {
         emitTabChange(examRef.current.id, examRef.current.titre)
       }
       throw new DOMException('Partage d\'écran interdit pendant l\'examen.', 'NotAllowedError')
@@ -586,7 +578,7 @@ export default function TakeExam() {
   return (
     <>
     {/* Écran d'entrée plein écran — exige un clic utilisateur (restriction navigateur) */}
-    {!fsGranted && !anticheatDisabled && exam && (
+    {!fsGranted && exam && (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950 backdrop-blur-md">
         <div className="mx-4 w-full max-w-md space-y-6 rounded-[2rem] border border-white/10 bg-slate-900/95 p-6 shadow-modal sm:p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-primary-500 bg-primary-500/15">
@@ -615,7 +607,7 @@ export default function TakeExam() {
     )}
 
     {/* Overlay plein écran — sortie détectée */}
-    {fullscreenRequired && !isFullscreen && !isBlocked && !anticheatDisabled && (
+    {fullscreenRequired && !isFullscreen && !isBlocked && (
       <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/95 backdrop-blur-md">
         <div className="mx-4 w-full max-w-md space-y-6 rounded-[2rem] border border-white/10 bg-slate-900/95 p-6 shadow-modal sm:p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-warning-500 bg-warning-500/15">

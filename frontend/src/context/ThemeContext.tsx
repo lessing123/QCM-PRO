@@ -6,7 +6,6 @@ interface ThemeContextType {
   theme: Theme
   toggleTheme: () => void
   isDark: boolean
-  anticheatDisabled: boolean
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -33,7 +32,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === 'dark', anticheatDisabled: false }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === 'dark' }}>
       {children}
     </ThemeContext.Provider>
   )

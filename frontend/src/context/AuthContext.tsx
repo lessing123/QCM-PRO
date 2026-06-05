@@ -73,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
-    sessionStorage.removeItem('_qk')
     window.dispatchEvent(new Event('auth:logout'))
     setUser(null)
   }

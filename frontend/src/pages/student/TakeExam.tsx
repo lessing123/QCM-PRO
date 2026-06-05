@@ -22,7 +22,7 @@ export default function TakeExam() {
   const [timeLeft, setTimeLeft]       = useState(0)
   const [totalTime, setTotalTime]     = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showConfirm] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [skipped, setSkipped]         = useState<Set<number>>(new Set())
   const [, setTabCount]               = useState(0)
   const [isBlocked, setIsBlocked]     = useState(false)

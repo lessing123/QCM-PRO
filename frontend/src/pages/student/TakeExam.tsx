@@ -22,11 +22,12 @@ export default function TakeExam() {
   const [timeLeft, setTimeLeft]       = useState(0)
   const [totalTime, setTotalTime]     = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
+  const [showConfirm] = useState(false)
   const [skipped, setSkipped]         = useState<Set<number>>(new Set())
   const [, setTabCount]               = useState(0)
   const [isBlocked, setIsBlocked]     = useState(false)
   const [saveError, setSaveError]     = useState(false)
+  const [showReview, setShowReview]   = useState(false)
   const [isFullscreen, setIsFullscreen]             = useState(false)
   const [fullscreenRequired, setFullscreenRequired] = useState(false)
   const [fsGranted, setFsGranted]                   = useState(() => anticheatDisabled)
@@ -359,6 +360,21 @@ export default function TakeExam() {
     if (!attemptRef.current) return
     if (timerRef.current) clearInterval(timerRef.current)
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+
+    // Synchronisation finale : re-soumettre toutes les réponses localStorage avant de clôturer
+    try {
+      const localRaw = localStorage.getItem(localKey())
+      if (localRaw && examRef.current) {
+        const local = JSON.parse(localRaw) as Record<string, string | string[]>
+        await Promise.allSettled(
+          Object.entries(local).map(([qId, ans]) => {
+            if (Array.isArray(ans)) return studentService.submitAnswer(attemptRef.current!.id, qId, undefined, ans)
+            return studentService.submitAnswer(attemptRef.current!.id, qId, ans)
+          })
+        )
+      }
+    } catch { /* ignoré */ }
+
     try { localStorage.removeItem(localKey()) } catch { /* ignoré */ }
     setIsSubmitting(true)
     try {
@@ -463,6 +479,109 @@ export default function TakeExam() {
       </div>
     </div>
   )
+
+  // ── Écran de révision avant soumission ───────────────────────────────────────
+  if (showReview && exam) {
+    const unanswered = questions.filter(q => {
+      const v = answers[q.id]
+      return Array.isArray(v) ? v.length === 0 : !v
+    })
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40 shadow-sm">
+          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div>
+              <h1 className="text-sm font-semibold text-slate-900 dark:text-white">Vérification des réponses</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{exam.titre}</p>
+            </div>
+            <button
+              onClick={() => setShowReview(false)}
+              className="flex items-center gap-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+              Retour à l'examen
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-5 pb-32 space-y-3">
+          {/* Résumé */}
+          <div className={`rounded-2xl border p-4 flex items-center gap-4 ${unanswered.length === 0 ? 'border-success-200 dark:border-success-800 bg-success-50 dark:bg-success-900/20' : 'border-warning-200 dark:border-warning-800 bg-warning-50 dark:bg-warning-900/20'}`}>
+            <div className={`text-2xl font-bold ${unanswered.length === 0 ? 'text-success-600 dark:text-success-400' : 'text-warning-600 dark:text-warning-400'}`}>
+              {answered}/{total}
+            </div>
+            <div>
+              <p className={`text-sm font-semibold ${unanswered.length === 0 ? 'text-success-700 dark:text-success-300' : 'text-warning-700 dark:text-warning-300'}`}>
+                {unanswered.length === 0 ? 'Toutes les questions sont répondues' : `${unanswered.length} question(s) sans réponse`}
+              </p>
+              {unanswered.length > 0 && (
+                <p className="text-xs text-warning-600 dark:text-warning-400 mt-0.5">
+                  Cliquez sur une question pour y répondre avant de soumettre.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Liste des questions */}
+          {questions.map((q, i) => {
+            const isAns = Array.isArray(answers[q.id]) ? (answers[q.id] as string[]).length > 0 : !!answers[q.id]
+            const selectedTexts = isAns
+              ? (Array.isArray(answers[q.id])
+                  ? (answers[q.id] as string[]).map(aid => q.answers?.find((a: any) => a.id === aid)?.texte).filter(Boolean)
+                  : [q.answers?.find((a: any) => a.id === answers[q.id])?.texte].filter(Boolean))
+              : []
+
+            return (
+              <div
+                key={q.id}
+                className={`rounded-2xl border p-4 ${isAns ? 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900' : 'border-warning-300 dark:border-warning-700 bg-warning-50 dark:bg-warning-900/20'}`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${isAns ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400' : 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400'}`}>
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed line-clamp-2">{q.enonce}</p>
+                    {isAns ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedTexts.map((t, ti) => (
+                          <span key={ti} className="text-xs bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-400 border border-success-200 dark:border-success-800 px-2 py-0.5 rounded-full">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setCurrentIndex(i); setShowReview(false) }}
+                        className="text-xs font-medium text-warning-700 dark:text-warning-400 underline underline-offset-2"
+                      >
+                        Cliquez pour répondre →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </main>
+
+        {/* Barre de soumission fixe */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700 px-4 py-3">
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {unanswered.length > 0
+                ? <span className="text-warning-600 dark:text-warning-400 font-medium">{unanswered.length} question(s) non répondue(s)</span>
+                : <span className="text-success-600 dark:text-success-400 font-medium">Tout est complété ✓</span>
+              }
+            </div>
+            <Button variant="success" isLoading={isSubmitting} onClick={() => submitExam()}>
+              Confirmer la soumission
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -724,7 +843,7 @@ export default function TakeExam() {
             </Button>
 
             {isLast ? (
-              <Button variant="success" onClick={() => setShowConfirm(true)}>
+              <Button variant="success" onClick={() => setShowReview(true)}>
                 Terminer
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -790,7 +909,7 @@ export default function TakeExam() {
           <Button
             variant={isCritical ? 'danger' : 'success'}
             size="sm"
-            onClick={() => setShowConfirm(true)}
+            onClick={() => setShowReview(true)}
             isLoading={isSubmitting}
           >
             Soumettre l'examen

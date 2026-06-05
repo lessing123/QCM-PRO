@@ -318,6 +318,18 @@ export const submitExam = asyncHandler(async (req: AuthRequest, res: Response) =
     include: { exam: { select: { id: true, titre: true, resultats_publics: true } } },
   })
 
+  // Notification admin : l'étudiant a terminé
+  try {
+    const student = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { nom: true, prenom: true } })
+    const name = student ? `${student.prenom} ${student.nom}` : 'Un étudiant'
+    const { io } = await import('../socket/socketServer.js')
+    const notif = await prisma.notification.create({
+      data: { type: 'EXAM_SUBMITTED', message: `${name} a terminé l'examen "${updatedAttempt.exam.titre}"`, userId: req.user!.id, examId: updatedAttempt.exam.id },
+      include: { user: { select: { nom: true, prenom: true } } },
+    })
+    io?.to('admins').emit('notification:new', { ...notif, attemptId: id, canUnblock: false })
+  } catch { /* silencieux */ }
+
   res.json({
     message: 'Examen terminé',
     attempt: updatedAttempt,

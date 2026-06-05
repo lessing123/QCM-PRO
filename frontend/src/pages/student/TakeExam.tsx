@@ -26,6 +26,7 @@ export default function TakeExam() {
   const [skipped, setSkipped]         = useState<Set<number>>(new Set())
   const [, setTabCount]               = useState(0)
   const [isBlocked, setIsBlocked]     = useState(false)
+  const [saveError, setSaveError]     = useState(false)
   const [isFullscreen, setIsFullscreen]             = useState(false)
   const [fullscreenRequired, setFullscreenRequired] = useState(false)
   const [fsGranted, setFsGranted]                   = useState(() => anticheatDisabled)
@@ -250,22 +251,36 @@ export default function TakeExam() {
 
       if (a.studentAnswers && e.questions) {
         const prev: Record<string, string | string[]> = {}
-        // Grouper les réponses par questionId
         const grouped: Record<string, string[]> = {}
         a.studentAnswers.forEach((sa: any) => {
           if (!sa.answerId) return
           if (!grouped[sa.questionId]) grouped[sa.questionId] = []
           grouped[sa.questionId].push(sa.answerId)
         })
-        // Adapter selon le type de question
         e.questions.forEach((q: any) => {
           if (!grouped[q.id]) return
-          if (q.type === 'MULTIPLE') {
-            prev[q.id] = grouped[q.id]          // array pour multiple
-          } else {
-            prev[q.id] = grouped[q.id][0] || '' // string pour single
-          }
+          prev[q.id] = q.type === 'MULTIPLE' ? grouped[q.id] : (grouped[q.id][0] || '')
         })
+
+        // Restaurer les réponses locales non confirmées par le serveur
+        try {
+          const localRaw = localStorage.getItem(`_qa_${a.id}`)
+          if (localRaw) {
+            const local = JSON.parse(localRaw) as Record<string, string | string[]>
+            for (const [qId, ans] of Object.entries(local)) {
+              if (!prev[qId]) {
+                prev[qId] = ans
+                // Re-soumettre au serveur en arrière-plan
+                if (Array.isArray(ans)) {
+                  studentService.submitAnswer(a.id, qId, undefined, ans).catch(() => {})
+                } else {
+                  studentService.submitAnswer(a.id, qId, ans).catch(() => {})
+                }
+              }
+            }
+          }
+        } catch { /* ignoré */ }
+
         setAnswers(prev)
       }
     } catch (err: any) {
@@ -274,25 +289,42 @@ export default function TakeExam() {
     }
   }
 
-  // Sauvegarde automatique
+  // Sauvegarde automatique avec retry (3 tentatives) en cas de perte réseau
   const saveAnswer = useCallback((questionId: string, answerId?: string, answerIds?: string[]) => {
     if (saveRef.current) clearTimeout(saveRef.current)
     saveRef.current = setTimeout(async () => {
-      try {
-        await studentService.submitAnswer(attemptRef.current!.id, questionId, answerId, answerIds)
+      setSaveError(false)
+      for (let i = 0; i < 3; i++) {
+        try {
+          await studentService.submitAnswer(attemptRef.current!.id, questionId, answerId, answerIds)
+          setSaveError(false)
+          return
+        } catch {
+          if (i < 2) await new Promise(r => setTimeout(r, 800 * (i + 1)))
+        }
       }
-      catch { /* silencieux */ }
+      setSaveError(true)
     }, 400)
   }, [])
+
+  const localKey = () => `_qa_${attemptRef.current?.id}`
 
   // Selection unique (SINGLE / TRUE_FALSE) — cliquer à nouveau désélectionne
   const selectAnswer = (questionId: string, answerId: string) => {
     const current = answers[questionId]
     if (current === answerId) {
-      setAnswers(prev => { const n = { ...prev }; delete n[questionId]; return n })
+      setAnswers(prev => {
+        const n = { ...prev }; delete n[questionId]
+        try { localStorage.setItem(localKey(), JSON.stringify(n)) } catch { /* ignoré */ }
+        return n
+      })
       saveAnswer(questionId, undefined)
     } else {
-      setAnswers(prev => ({ ...prev, [questionId]: answerId }))
+      setAnswers(prev => {
+        const n = { ...prev, [questionId]: answerId }
+        try { localStorage.setItem(localKey(), JSON.stringify(n)) } catch { /* ignoré */ }
+        return n
+      })
       saveAnswer(questionId, answerId)
     }
   }
@@ -305,7 +337,9 @@ export default function TakeExam() {
         ? current.filter(id => id !== answerId)
         : [...current, answerId]
       saveAnswer(questionId, undefined, updated)
-      return { ...prev, [questionId]: updated }
+      const n = { ...prev, [questionId]: updated }
+      try { localStorage.setItem(localKey(), JSON.stringify(n)) } catch { /* ignoré */ }
+      return n
     })
   }
 
@@ -325,6 +359,7 @@ export default function TakeExam() {
     if (!attemptRef.current) return
     if (timerRef.current) clearInterval(timerRef.current)
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    try { localStorage.removeItem(localKey()) } catch { /* ignoré */ }
     setIsSubmitting(true)
     try {
       const result = await studentService.submitExam(attemptRef.current.id)
@@ -541,9 +576,17 @@ export default function TakeExam() {
 
             {/* Titre + progression */}
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                {exam.titre}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                  {exam.titre}
+                </h1>
+                {saveError && (
+                  <span className="shrink-0 flex items-center gap-1 text-[10px] font-semibold text-warning-600 dark:text-warning-400 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 px-2 py-0.5 rounded-full">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                    Hors ligne
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2 mt-1.5">
                 <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
                   Q {currentIndex + 1}/{total}

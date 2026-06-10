@@ -43,6 +43,104 @@ export default function Results() {
     }
   }
 
+  const handleExportWord = async () => {
+    if (!results) return
+    try {
+      const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, HeadingLevel, WidthType, AlignmentType } = await import('docx')
+
+      const headerCell = (text: string) => new TableCell({
+        shading: { fill: '6366F1' },
+        children: [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text, bold: true, color: 'FFFFFF', size: 20 })],
+        })],
+      })
+
+      const dataCell = (text: string, bold = false, color = '1E293B') => new TableCell({
+        children: [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text, bold, color, size: 20 })],
+        })],
+      })
+
+      const emailCell = (text: string) => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text, size: 18, color: '64748B' })],
+        })],
+      })
+
+      const statsTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            tableHeader: true,
+            children: ['Tentatives', 'Moyenne /20', 'Minimum /20', 'Maximum /20'].map(headerCell),
+          }),
+          new TableRow({
+            children: [
+              dataCell(String(results.stats.total)),
+              dataCell(results.stats.moyenne.toFixed(2)),
+              dataCell(String(results.stats.min)),
+              dataCell(String(results.stats.max)),
+            ],
+          }),
+        ],
+      })
+
+      const studentsTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            tableHeader: true,
+            children: ['Nom', 'Prénom', 'Email', 'Score /20', 'Date de fin'].map(headerCell),
+          }),
+          ...sorted.map(a => {
+            const score = a.score != null ? a.score.toFixed(2) : '—'
+            const passed = (a.score || 0) >= 10
+            return new TableRow({
+              children: [
+                dataCell(a.user?.nom || ''),
+                dataCell(a.user?.prenom || ''),
+                emailCell(a.user?.email || ''),
+                dataCell(`${score}/20`, true, passed ? '16A34A' : 'DC2626'),
+                dataCell(new Date(a.date_fin || a.date_debut).toLocaleString('fr-FR')),
+              ],
+            })
+          }),
+        ],
+      })
+
+      const doc = new Document({
+        sections: [{
+          children: [
+            new Paragraph({ text: `Résultats : ${results.exam.titre}`, heading: HeadingLevel.HEADING_1 }),
+            new Paragraph({
+              children: [new TextRun({ text: `Généré le ${new Date().toLocaleString('fr-FR')}`, color: '64748B', size: 18 })],
+            }),
+            new Paragraph({}),
+            new Paragraph({ text: 'Statistiques', heading: HeadingLevel.HEADING_2 }),
+            statsTable,
+            new Paragraph({}),
+            new Paragraph({ text: 'Liste des étudiants', heading: HeadingLevel.HEADING_2 }),
+            studentsTable,
+          ],
+        }],
+      })
+
+      const blob = await Packer.toBlob(doc)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `resultats_${results.exam.titre.replace(/[^a-z0-9]/gi, '_')}.docx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Word généré')
+    } catch (e) {
+      console.error(e)
+      toast.error("Erreur lors de l'export Word")
+    }
+  }
+
   const handleExportPdf = () => {
     if (!results) return
     try {
@@ -211,6 +309,13 @@ export default function Results() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 12h7.5m-7.5 3h5.25" />
             </svg>
             Exporter PDF
+          </Button>
+          <Button variant="outline" onClick={handleExportWord}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v3.375c0 .621-.504 1.125-1.125 1.125h-12.75A1.125 1.125 0 014.5 17.625V6.375c0-.621.504-1.125 1.125-1.125h4.125L12 7.5h6.375c.621 0 1.125.504 1.125 1.125V14.25z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
+            </svg>
+            Exporter Word
           </Button>
         </div>
       </div>

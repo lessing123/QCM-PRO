@@ -16,7 +16,7 @@ export const getExamResults = asyncHandler(async (req: AuthRequest, res: Respons
   const attempts = await prisma.attempt.findMany({
     where: { examId, statut: 'TERMINE' },
     include: {
-      user: { select: { id: true, nom: true, prenom: true, email: true } },
+      user: { select: { id: true, nom: true, prenom: true, email: true, groups: { select: { id: true, nom: true } } } },
     },
     orderBy: { date_fin: 'desc' },
   })

@@ -12,7 +12,7 @@ export default function Results() {
   const { examId } = useParams()
   const [results, setResults] = useState<ExamResults | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [sortField, setSortField] = useState<'nom' | 'score' | 'date'>('date')
+  const [sortField, setSortField] = useState<'nom' | 'score' | 'date' | 'classe'>('classe')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => { if (examId) loadResults() }, [examId])
@@ -92,13 +92,14 @@ export default function Results() {
         rows: [
           new TableRow({
             tableHeader: true,
-            children: ['Nom', 'Prénom', 'Email', 'Score /20', 'Date de fin'].map(headerCell),
+            children: ['Classe', 'Nom', 'Prénom', 'Email', 'Score /20', 'Date de fin'].map(headerCell),
           }),
-          ...sorted.map(a => {
+          ...sortedForExport.map(a => {
             const score = a.score != null ? a.score.toFixed(2) : '—'
             const passed = (a.score || 0) >= 10
             return new TableRow({
               children: [
+                dataCell(getClasse(a)),
                 dataCell(a.user?.nom || ''),
                 dataCell(a.user?.prenom || ''),
                 emailCell(a.user?.email || ''),
@@ -188,8 +189,9 @@ export default function Results() {
 
       autoTable(doc, {
         startY: y1 + 16,
-        head: [['Nom', 'Prénom', 'Email', 'Score /20', 'Date de fin']],
-        body: sorted.map(a => [
+        head: [['Classe', 'Nom', 'Prénom', 'Email', 'Score /20', 'Date de fin']],
+        body: sortedForExport.map(a => [
+          getClasse(a),
           a.user?.nom || '',
           a.user?.prenom || '',
           a.user?.email || '',
@@ -199,8 +201,16 @@ export default function Results() {
         theme: 'striped',
         headStyles: { fillColor: primary, textColor: 255, fontStyle: 'bold', fontSize: 9 },
         bodyStyles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 28 },
+          1: { cellWidth: 28 },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 'auto' },
+          4: { cellWidth: 20, halign: 'center' },
+          5: { cellWidth: 30 },
+        },
         didParseCell: (data) => {
-          if (data.section === 'body' && data.column.index === 3) {
+          if (data.section === 'body' && data.column.index === 4) {
             const val = parseFloat(data.cell.text[0])
             if (!isNaN(val)) {
               data.cell.styles.textColor = val >= 10 ? [22, 163, 74] : [220, 38, 38]
@@ -229,12 +239,15 @@ export default function Results() {
     }
   }
 
-  const handleSort = (field: 'nom' | 'score' | 'date') => {
+  const getClasse = (a: typeof results extends null ? never : NonNullable<typeof results>['attempts'][0]) =>
+    a.user?.groups?.map(g => g.nom).join(', ') || '—'
+
+  const handleSort = (field: 'nom' | 'score' | 'date' | 'classe') => {
     if (sortField === field) {
       setSortOrder(o => o === 'asc' ? 'desc' : 'asc')
     } else {
       setSortField(field)
-      setSortOrder('desc')
+      setSortOrder('asc')
     }
   }
 
@@ -244,12 +257,23 @@ export default function Results() {
       cmp = `${a.user?.nom} ${a.user?.prenom}`.localeCompare(`${b.user?.nom} ${b.user?.prenom}`)
     else if (sortField === 'score')
       cmp = (a.score || 0) - (b.score || 0)
-    else
+    else if (sortField === 'classe') {
+      cmp = getClasse(a).localeCompare(getClasse(b))
+      if (cmp === 0) cmp = `${a.user?.nom} ${a.user?.prenom}`.localeCompare(`${b.user?.nom} ${b.user?.prenom}`)
+    } else
       cmp = new Date(a.date_fin || a.date_debut).getTime() - new Date(b.date_fin || b.date_debut).getTime()
     return sortOrder === 'asc' ? cmp : -cmp
   })
 
-  const SortBtn = ({ field, label }: { field: 'nom' | 'score' | 'date'; label: string }) => (
+  const sortedForExport = [...(results?.attempts || [])].sort((a, b) => {
+    const classeA = getClasse(a)
+    const classeB = getClasse(b)
+    const cc = classeA.localeCompare(classeB)
+    if (cc !== 0) return cc
+    return `${a.user?.nom} ${a.user?.prenom}`.localeCompare(`${b.user?.nom} ${b.user?.prenom}`)
+  })
+
+  const SortBtn = ({ field, label }: { field: 'nom' | 'score' | 'date' | 'classe'; label: string }) => (
     <button
       onClick={() => handleSort(field)}
       className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
@@ -355,6 +379,7 @@ export default function Results() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700/60">
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr>
+                <th className="px-6 py-3 text-left"><SortBtn field="classe" label="Classe" /></th>
                 <th className="px-6 py-3 text-left"><SortBtn field="nom" label="Étudiant" /></th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Email</th>
                 <th className="px-6 py-3 text-left"><SortBtn field="score" label="Score" /></th>
@@ -364,7 +389,7 @@ export default function Results() {
             <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700/60">
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
                     Aucun résultat disponible
                   </td>
                 </tr>
@@ -372,6 +397,9 @@ export default function Results() {
                 const passed = (attempt.score || 0) >= 10
                 return (
                   <tr key={attempt.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                      {getClasse(attempt)}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-sm font-medium text-slate-900 dark:text-white">
                         {attempt.user?.prenom} {attempt.user?.nom}

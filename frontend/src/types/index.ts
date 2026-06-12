@@ -13,6 +13,7 @@ export interface User {
   last_seen?: string
   must_change_password?: boolean
   password_temp?: string | null
+  groups?: { id: string; nom: string }[]
   createdAt: string
 }
 

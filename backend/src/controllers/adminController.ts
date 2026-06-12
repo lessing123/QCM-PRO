@@ -111,12 +111,20 @@ export const exportResults = asyncHandler(async (req: AuthRequest, res: Response
 
   const attempts = await prisma.attempt.findMany({
     where: { examId, statut: 'TERMINE' },
-    include: { user: { select: { nom: true, prenom: true, email: true } } },
-    orderBy: { date_fin: 'desc' },
+    include: { user: { select: { nom: true, prenom: true, email: true, groups: { select: { nom: true } } } } },
   })
 
-  const headers = ['Nom', 'Prénom', 'Email', 'Score /20', 'Date de début', 'Date de fin']
+  attempts.sort((a, b) => {
+    const ca = a.user.groups.map(g => g.nom).join(', ') || ''
+    const cb = b.user.groups.map(g => g.nom).join(', ') || ''
+    const cc = ca.localeCompare(cb)
+    if (cc !== 0) return cc
+    return `${a.user.nom} ${a.user.prenom}`.localeCompare(`${b.user.nom} ${b.user.prenom}`)
+  })
+
+  const headers = ['Classe', 'Nom', 'Prénom', 'Email', 'Score /20', 'Date de début', 'Date de fin']
   const rows = attempts.map(attempt => [
+    attempt.user.groups.map(g => g.nom).join(', ') || '—',
     attempt.user.nom,
     attempt.user.prenom,
     attempt.user.email,

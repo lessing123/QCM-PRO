@@ -130,8 +130,10 @@ export default function ExamResult() {
       <Card title="Récapitulatif de vos réponses">
         <div className="space-y-5">
           {attempt.exam?.questions?.map((question, index) => {
-            const studentAnswer = attempt.studentAnswers?.find(sa => sa.questionId === question.id)
-            const isCorrect = studentAnswer?.est_correcte
+            const saList = attempt.studentAnswers?.filter(sa => sa.questionId === question.id) ?? []
+            const isCorrect = resultats_publics
+              ? (saList.length > 0 ? saList.every(sa => sa.est_correcte === true) : false)
+              : undefined
 
             return (
               <div key={question.id} className="border-b border-slate-200 pb-5 last:border-0 last:pb-0 dark:border-slate-700/60">
@@ -157,7 +159,7 @@ export default function ExamResult() {
                 </div>
 
                 <div className="mt-3 space-y-2">
-                  {studentAnswer?.answer ? (
+                  {saList.length > 0 ? (
                     <div className={`rounded-2xl border p-3 text-sm ${
                       !resultats_publics
                         ? 'border-primary-200 bg-primary-50 dark:border-primary-800/40 dark:bg-primary-900/15'
@@ -169,12 +171,16 @@ export default function ExamResult() {
                         !resultats_publics ? 'text-primary-700 dark:text-primary-300'
                           : isCorrect ? 'text-emerald-700 dark:text-emerald-300'
                           : 'text-rose-700 dark:text-rose-300'
-                      }`}>Votre réponse :</span>{' '}
+                      }`}>
+                        {saList.length > 1 ? 'Vos réponses :' : 'Votre réponse :'}
+                      </span>{' '}
                       <span className={
                         !resultats_publics ? 'text-primary-800 dark:text-primary-200'
                           : isCorrect ? 'text-emerald-700 dark:text-emerald-200'
                           : 'text-rose-700 dark:text-rose-200'
-                      }>{studentAnswer.answer.texte}</span>
+                      }>
+                        {saList.map(sa => sa.answer?.texte).filter(Boolean).join(' • ')}
+                      </span>
                     </div>
                   ) : (
                     <p className="text-xs italic text-slate-400 dark:text-slate-500">Aucune réponse fournie</p>
@@ -186,6 +192,13 @@ export default function ExamResult() {
                       <span className="text-emerald-700 dark:text-emerald-200">{correct.texte}</span>
                     </div>
                   ))}
+
+                  {resultats_publics && question.explication && (
+                    <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-800/40 dark:bg-blue-900/15">
+                      <span className="font-semibold text-blue-700 dark:text-blue-300">Explication :</span>{' '}
+                      <span className="text-blue-700 dark:text-blue-200">{question.explication}</span>
+                    </div>
+                  )}
 
                   {question.answers?.some(a => a.image_url) && (
                     <div className="flex flex-wrap gap-2 pt-1">

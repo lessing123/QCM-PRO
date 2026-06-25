@@ -10,9 +10,19 @@ export default function ExamRecap() {
   const { attemptId } = useParams()
   const [attempt, setAttempt] = useState<Attempt | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [timeSpent, setTimeSpent] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    if (attemptId) load()
+    if (attemptId) {
+      load()
+      try {
+        const raw = localStorage.getItem(`_qt_${attemptId}`)
+        if (raw) {
+          setTimeSpent(JSON.parse(raw))
+          localStorage.removeItem(`_qt_${attemptId}`)
+        }
+      } catch { /* ignoré */ }
+    }
   }, [attemptId])
 
   const load = async () => {
@@ -24,6 +34,12 @@ export default function ExamRecap() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const fmtTime = (secs: number) => {
+    const m = Math.floor(secs / 60)
+    const s = secs % 60
+    return m > 0 ? `${m}m ${s}s` : `${s}s`
   }
 
   if (isLoading) {
@@ -47,8 +63,6 @@ export default function ExamRecap() {
   const { exam, studentAnswers = [] } = attempt
   const questions = exam.questions || []
   const resultats_publics = exam.resultats_publics
-
-  const getStudentAnswer = (questionId: string) => studentAnswers.find(sa => sa.questionId === questionId)
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -91,9 +105,13 @@ export default function ExamRecap() {
 
       <div className="space-y-4">
         {questions.map((question, index) => {
-          const sa = getStudentAnswer(question.id)
-          const answered = !!sa?.answerId
-          const isCorrect = resultats_publics ? sa?.est_correcte : undefined
+          const saList = studentAnswers.filter(sa => sa.questionId === question.id)
+          const answered = saList.length > 0
+          const isCorrect = resultats_publics
+            ? (answered ? saList.every(sa => sa.est_correcte === true) : false)
+            : undefined
+          const isMultiple = question.type === 'MULTIPLE'
+          const elapsed = timeSpent[question.id]
 
           return (
             <Card key={question.id}>
@@ -107,6 +125,12 @@ export default function ExamRecap() {
                       {question.type === 'SINGLE' ? 'Choix unique' : question.type === 'MULTIPLE' ? 'Choix multiple' : 'Vrai / Faux'}
                     </span>
                     <span className="text-xs text-slate-400">{question.points} pt{question.points > 1 ? 's' : ''}</span>
+                    {elapsed != null && (
+                      <span className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                        {fmtTime(elapsed)}
+                      </span>
+                    )}
                   </div>
                   {resultats_publics && (
                     <span className={`badge shrink-0 ${isCorrect ? 'badge-success' : !answered ? 'badge-neutral' : 'badge-danger'}`}>
@@ -119,7 +143,7 @@ export default function ExamRecap() {
 
                 <div className="space-y-2">
                   {question.answers?.map(answer => {
-                    const isChosen = answer.id === sa?.answerId
+                    const isChosen = saList.some(sa => sa.answerId === answer.id)
                     const isAnswerCorrect = resultats_publics ? answer.est_correcte : false
 
                     let style = 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/40'
@@ -133,9 +157,19 @@ export default function ExamRecap() {
 
                     return (
                       <div key={answer.id} className={`flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 transition-colors ${style}`}>
-                        <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${isChosen ? 'border-primary-500 bg-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                          {isChosen && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                        </div>
+                        {isMultiple ? (
+                          <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-md border-2 ${isChosen ? 'border-primary-500 bg-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                            {isChosen && (
+                              <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        ) : (
+                          <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${isChosen ? 'border-primary-500 bg-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                            {isChosen && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                          </div>
+                        )}
                         {answer.image_url && (
                           <img src={resolveMediaUrl(answer.image_url)} alt="réponse"
                             className="h-12 w-auto rounded-lg border border-slate-200 object-contain dark:border-slate-700" />
@@ -147,6 +181,13 @@ export default function ExamRecap() {
                 </div>
 
                 {!answered && <p className="text-xs italic text-slate-400 dark:text-slate-500">Aucune réponse fournie</p>}
+
+                {resultats_publics && question.explication && (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm dark:border-blue-800/40 dark:bg-blue-900/15">
+                    <span className="font-semibold text-blue-700 dark:text-blue-300">Explication : </span>
+                    <span className="text-blue-700 dark:text-blue-200">{question.explication}</span>
+                  </div>
+                )}
               </div>
             </Card>
           )
@@ -169,7 +210,6 @@ export default function ExamRecap() {
 function IconBack() {
   return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
 }
-
 
 function IconClock() {
   return <svg className="mx-auto h-6 w-6 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>

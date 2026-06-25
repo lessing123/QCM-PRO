@@ -81,14 +81,15 @@ model Exam {
 }
 
 model Question {
-  id        String       @id @default(uuid())
-  examId    String
-  enonce    String       @db.Text
-  type      QuestionType @default(SINGLE)
-  points    Int          @default(1)
-  ordre     Int          @default(0)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id          String       @id @default(uuid())
+  examId      String
+  enonce      String       @db.Text
+  explication String?      @db.Text
+  type        QuestionType @default(SINGLE)
+  points      Int          @default(1)
+  ordre       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   exam           Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
   answers        Answer[]

@@ -69,6 +69,7 @@ export default function ExamForm() {
       const { questions: examQuestions } = await examService.getQuestions(examId)
       setQuestions(examQuestions.map(q => ({
         enonce: q.enonce,
+        explication: q.explication ?? null,
         type: q.type as QuestionType,
         points: q.points,
         ordre: q.ordre,
@@ -135,6 +136,7 @@ export default function ExamForm() {
   const openQuestionModal = (index: number | null = null) => {
     const newQuestion: QuestionFormData = {
       enonce: '',
+      explication: null,
       type: 'SINGLE',
       points: 1,
       ordre: questions.length + 1,
@@ -640,6 +642,15 @@ export default function ExamForm() {
               })}
               min={1}
               max={10}
+            /> </div> <div> <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Explication <span className="text-xs font-normal text-slate-400">(optionnel — visible après résultats)</span></label> <textarea
+              rows={2}
+              value={questionModal.question?.explication || ''}
+              onChange={(e) => setQuestionModal({
+                ...questionModal,
+                question: { ...questionModal.question!, explication: e.target.value || null }
+              })}
+              placeholder="Expliquez pourquoi cette réponse est correcte…"
+              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 transition-colors resize-none"
             /> </div> <div> <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Réponses</label> <div className="space-y-3"> {questionModal.question?.answers.map((answer, index) => (
                 <div key={index} className="flex items-start gap-2"> <input
                     type="checkbox"

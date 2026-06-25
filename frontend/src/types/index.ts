@@ -64,6 +64,7 @@ export interface Question {
   id: string
   examId: string
   enonce: string
+  explication?: string | null
   type: QuestionType
   points: number
   ordre: number
@@ -165,6 +166,7 @@ export interface ExamFormData {
 
 export interface QuestionFormData {
   enonce: string
+  explication?: string | null
   type: QuestionType
   points: number
   ordre: number

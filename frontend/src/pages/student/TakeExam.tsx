@@ -32,16 +32,32 @@ export default function TakeExam() {
 
   const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false)
 
-  const timerRef          = useRef<ReturnType<typeof setInterval> | null>(null)
-  const saveRef           = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const examRef           = useRef<Exam | null>(null)
-  const attemptRef        = useRef<Attempt | null>(null)
-  const autoRetryRef      = useRef<ReturnType<typeof setInterval> | null>(null)
-  const pendingAnswersRef = useRef<Record<string, string | string[]> | undefined>(undefined)
+  const timerRef            = useRef<ReturnType<typeof setInterval> | null>(null)
+  const saveRef             = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const examRef             = useRef<Exam | null>(null)
+  const attemptRef          = useRef<Attempt | null>(null)
+  const autoRetryRef        = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pendingAnswersRef   = useRef<Record<string, string | string[]> | undefined>(undefined)
+  const questionEnterTimeRef = useRef<number>(Date.now())
+  const prevIndexRef        = useRef<number>(0)
+  const timeSpentRef        = useRef<Record<string, number>>({})
   useEffect(() => { if (id) load() }, [id])
   useEffect(() => { examRef.current    = exam    }, [exam])
   useEffect(() => { attemptRef.current = attempt }, [attempt])
   useEffect(() => () => { if (autoRetryRef.current) clearInterval(autoRetryRef.current) }, [])
+
+  // Enregistre le temps passé sur la question précédente à chaque changement d'index
+  useEffect(() => {
+    if (!examRef.current?.questions) return
+    const now = Date.now()
+    const prevQ = examRef.current.questions[prevIndexRef.current]
+    if (prevQ && prevIndexRef.current !== currentIndex) {
+      const elapsed = Math.floor((now - questionEnterTimeRef.current) / 1000)
+      timeSpentRef.current[prevQ.id] = (timeSpentRef.current[prevQ.id] ?? 0) + elapsed
+    }
+    questionEnterTimeRef.current = now
+    prevIndexRef.current = currentIndex
+  }, [currentIndex])
 
   // Timer
   useEffect(() => {
@@ -369,6 +385,17 @@ export default function TakeExam() {
         const result = await studentService.submitExam(attemptRef.current!.id, pendingAnswersRef.current)
         if (autoRetryRef.current) { clearInterval(autoRetryRef.current); autoRetryRef.current = null }
         try { localStorage.removeItem(localKey()) } catch { /* ignoré */ }
+        // Enregistrer le temps passé sur la question courante avant de naviguer
+        try {
+          const curQ = examRef.current?.questions?.[prevIndexRef.current]
+          if (curQ) {
+            const elapsed = Math.floor((Date.now() - questionEnterTimeRef.current) / 1000)
+            timeSpentRef.current[curQ.id] = (timeSpentRef.current[curQ.id] ?? 0) + elapsed
+          }
+          if (Object.keys(timeSpentRef.current).length > 0) {
+            localStorage.setItem(`_qt_${result.attempt.id}`, JSON.stringify(timeSpentRef.current))
+          }
+        } catch { /* ignoré */ }
         navigate(`/student/recap/${result.attempt.id}`)
         return true
       } catch {
@@ -722,7 +749,7 @@ export default function TakeExam() {
                   />
                 </div>
                 <span className="text-xs font-semibold text-primary-600 dark:text-primary-400 shrink-0">
-                  {progress}%
+                  {answered}/{total}
                 </span>
               </div>
             </div>

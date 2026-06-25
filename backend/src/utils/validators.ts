@@ -35,6 +35,7 @@ export const examSchema = z.object({
 export const questionSchema = z.object({
   examId: z.string().uuid('ID d\'examen invalide'),
   enonce: z.string().min(1, 'L\'énoncé est requis'),
+  explication: z.string().max(2000).optional().nullable(),
   type: z.enum(['SINGLE', 'MULTIPLE', 'TRUE_FALSE']).default('SINGLE'),
   points: z.number().int().min(1).max(10).default(1),
   ordre: z.number().int().min(0).default(0),
@@ -49,6 +50,7 @@ export const questionSchema = z.object({
 
 export const updateQuestionSchema = z.object({
   enonce: z.string().min(1, 'L\'énoncé est requis').optional(),
+  explication: z.string().max(2000).optional().nullable(),
   type: z.enum(['SINGLE', 'MULTIPLE', 'TRUE_FALSE']).optional(),
   points: z.number().int().min(1).max(10).optional(),
   ordre: z.number().int().min(0).optional(),

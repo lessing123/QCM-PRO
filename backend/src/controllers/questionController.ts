@@ -1,7 +1,23 @@
 import { Response } from 'express'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { prisma } from '../config/db.js'
 import { AuthRequest, asyncHandler } from '../middlewares/authMiddleware.js'
 import { questionSchema, updateQuestionSchema, idParamSchema } from '../utils/validators.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const uploadDir = path.join(__dirname, '../../../public/uploads')
+
+const deleteUploadFile = (imageUrl: string | null | undefined) => {
+  if (!imageUrl) return
+  try {
+    const filename = imageUrl.split('/uploads/').pop()
+    if (!filename) return
+    const filePath = path.join(uploadDir, filename)
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+  } catch { /* ignore */ }
+}
 
 // Liste des questions d'un examen
 export const getQuestionsByExam = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -37,7 +53,7 @@ export const getQuestionById = asyncHandler(async (req: AuthRequest, res: Respon
 
 // Créer une question
 export const createQuestion = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { examId, enonce, type, points, ordre, answers } = questionSchema.parse(req.body)
+  const { examId, enonce, explication, type, points, ordre, answers } = questionSchema.parse(req.body)
 
   const exam = await prisma.exam.findUnique({ where: { id: examId } })
   if (!exam) {
@@ -53,6 +69,7 @@ export const createQuestion = asyncHandler(async (req: AuthRequest, res: Respons
     data: {
       examId,
       enonce,
+      explication: explication ?? null,
       type,
       points,
       ordre,
@@ -80,6 +97,12 @@ export const updateQuestion = asyncHandler(async (req: AuthRequest, res: Respons
       return res.status(400).json({ error: 'Au moins une réponse correcte est requise' })
     }
 
+    // Collecter les images des anciennes réponses avant suppression
+    const oldAnswers = await prisma.answer.findMany({
+      where: { questionId: id },
+      select: { image_url: true },
+    })
+
     await prisma.answer.deleteMany({ where: { questionId: id } })
     await prisma.answer.createMany({
       data: body.answers.map(a => ({
@@ -89,12 +112,16 @@ export const updateQuestion = asyncHandler(async (req: AuthRequest, res: Respons
         ordre: a.ordre,
       })),
     })
+
+    // Supprimer les fichiers images orphelins
+    oldAnswers.forEach(a => deleteUploadFile(a.image_url))
   }
 
   const question = await prisma.question.update({
     where: { id },
     data: {
       enonce: body.enonce,
+      explication: body.explication !== undefined ? (body.explication ?? null) : undefined,
       type: body.type,
       points: body.points,
       ordre: body.ordre,
@@ -109,12 +136,19 @@ export const updateQuestion = asyncHandler(async (req: AuthRequest, res: Respons
 export const deleteQuestion = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = idParamSchema.parse(req.params)
 
-  const existingQuestion = await prisma.question.findUnique({ where: { id } })
+  const existingQuestion = await prisma.question.findUnique({
+    where: { id },
+    include: { answers: { select: { image_url: true } } },
+  })
   if (!existingQuestion) {
     return res.status(404).json({ error: 'Question non trouvée' })
   }
 
   await prisma.question.delete({ where: { id } })
+
+  // Supprimer les fichiers images orphelins
+  existingQuestion.answers.forEach(a => deleteUploadFile(a.image_url))
+
   res.json({ message: 'Question supprimée avec succès' })
 })
 

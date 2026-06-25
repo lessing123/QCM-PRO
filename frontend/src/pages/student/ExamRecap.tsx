@@ -81,7 +81,7 @@ export default function ExamRecap() {
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/20">
           <IconInfo />
           <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Note non encore disponible</p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Note pas encore disponible</p>
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
               Votre professeur publiera votre note quand il le souhaitera. Voici le récapitulatif de vos réponses.
             </p>

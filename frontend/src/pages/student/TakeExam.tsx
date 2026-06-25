@@ -30,13 +30,18 @@ export default function TakeExam() {
   const [fullscreenRequired, setFullscreenRequired] = useState(false)
   const [fsGranted, setFsGranted]                   = useState(false)
 
-  const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
-  const saveRef          = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const examRef          = useRef<Exam | null>(null)
-  const attemptRef       = useRef<Attempt | null>(null)
+  const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false)
+
+  const timerRef          = useRef<ReturnType<typeof setInterval> | null>(null)
+  const saveRef           = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const examRef           = useRef<Exam | null>(null)
+  const attemptRef        = useRef<Attempt | null>(null)
+  const autoRetryRef      = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pendingAnswersRef = useRef<Record<string, string | string[]> | undefined>(undefined)
   useEffect(() => { if (id) load() }, [id])
   useEffect(() => { examRef.current    = exam    }, [exam])
   useEffect(() => { attemptRef.current = attempt }, [attempt])
+  useEffect(() => () => { if (autoRetryRef.current) clearInterval(autoRetryRef.current) }, [])
 
   // Timer
   useEffect(() => {
@@ -353,26 +358,39 @@ export default function TakeExam() {
     if (timerRef.current) clearInterval(timerRef.current)
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
 
-    // Inclure les réponses localStorage dans le body : le backend les sauvegarde
-    // atomiquement avant le calcul du score (failsafe contre les pertes réseau)
-    let pendingAnswers: Record<string, string | string[]> | undefined
+    // Capturer les réponses localStorage dans un ref partagé avec le retry
     try {
       const localRaw = localStorage.getItem(localKey())
-      if (localRaw) pendingAnswers = JSON.parse(localRaw) as Record<string, string | string[]>
+      if (localRaw) pendingAnswersRef.current = JSON.parse(localRaw) as Record<string, string | string[]>
     } catch { /* ignoré */ }
 
+    const doSubmit = async (): Promise<boolean> => {
+      try {
+        const result = await studentService.submitExam(attemptRef.current!.id, pendingAnswersRef.current)
+        if (autoRetryRef.current) { clearInterval(autoRetryRef.current); autoRetryRef.current = null }
+        try { localStorage.removeItem(localKey()) } catch { /* ignoré */ }
+        navigate(`/student/recap/${result.attempt.id}`)
+        return true
+      } catch {
+        return false
+      }
+    }
+
     setIsSubmitting(true)
-    try {
-      const result = await studentService.submitExam(attemptRef.current.id, pendingAnswers)
-      try { localStorage.removeItem(localKey()) } catch { /* ignoré */ }
-      if (!auto) toast.success('Examen soumis avec succès')
-      navigate(`/student/recap/${result.attempt.id}`)
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Erreur lors de la soumission')
-      // localStorage préservé : le prochain retry inclura encore les pendingAnswers
-    } finally {
-      setIsSubmitting(false)
-      setShowConfirm(false)
+    const succeeded = await doSubmit()
+    setIsSubmitting(false)
+    setShowConfirm(false)
+
+    if (!succeeded) {
+      if (auto) {
+        // Chrono écoulé mais connexion absente — retry automatique toutes les 5s
+        setPendingAutoSubmit(true)
+        if (!autoRetryRef.current) {
+          autoRetryRef.current = setInterval(doSubmit, 5000)
+        }
+      } else {
+        toast.error('Erreur lors de la soumission')
+      }
     }
   }
 
@@ -904,6 +922,34 @@ export default function TakeExam() {
         </div>
       </div>
     </div>
+
+    {/* Overlay : chrono écoulé, en attente de reconnexion pour soumettre */}
+    {pendingAutoSubmit && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/98 backdrop-blur-md p-6">
+        <div className="text-center space-y-6 max-w-sm w-full">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-warning-500 bg-warning-500/15">
+            <svg className="h-10 w-10 text-warning-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white">Temps écoulé</h2>
+            <p className="text-slate-400 leading-relaxed">
+              La connexion est instable. Vos réponses sont sauvegardées localement.
+            </p>
+            <p className="text-slate-400">
+              Soumission automatique dès la reconnexion.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-primary-400 animate-bounce [animation-delay:0ms]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-primary-400 animate-bounce [animation-delay:150ms]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-primary-400 animate-bounce [animation-delay:300ms]" />
+          </div>
+          <p className="text-xs text-slate-500">Nouvelle tentative toutes les 5 secondes</p>
+        </div>
+      </div>
+    )}
     </>
   )
 }

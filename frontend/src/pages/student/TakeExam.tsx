@@ -361,14 +361,15 @@ export default function TakeExam() {
       if (localRaw) pendingAnswers = JSON.parse(localRaw) as Record<string, string | string[]>
     } catch { /* ignoré */ }
 
-    try { localStorage.removeItem(localKey()) } catch { /* ignoré */ }
     setIsSubmitting(true)
     try {
       const result = await studentService.submitExam(attemptRef.current.id, pendingAnswers)
+      try { localStorage.removeItem(localKey()) } catch { /* ignoré */ }
       if (!auto) toast.success('Examen soumis avec succès')
       navigate(`/student/recap/${result.attempt.id}`)
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Erreur lors de la soumission')
+      // localStorage préservé : le prochain retry inclura encore les pendingAnswers
     } finally {
       setIsSubmitting(false)
       setShowConfirm(false)

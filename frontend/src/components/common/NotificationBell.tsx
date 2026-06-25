@@ -55,6 +55,15 @@ export default function NotificationBell() {
     setNotifications(prev => prev.map(n => ({ ...n, lu: true })))
   }
 
+  const clearAll = async () => {
+    try {
+      await api.delete('/admin/notifications/clear')
+      setNotifications([])
+    } catch {
+      toast.error('Erreur lors de la suppression')
+    }
+  }
+
   // Débloquer l'étudiant
   const handleUnblock = async (notif: RichNotification) => {
     if (!notif.attemptId || unlocking) return
@@ -132,11 +141,18 @@ export default function NotificationBell() {
                 )}
               </div>
             </div>
-            {unread > 0 && (
-              <button onClick={markAllRead} className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
-                Tout marquer lu
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {unread > 0 && (
+                <button onClick={markAllRead} className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                  Tout marquer lu
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button onClick={clearAll} className="text-xs text-danger-500 dark:text-danger-400 hover:underline">
+                  Vider
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Liste */}

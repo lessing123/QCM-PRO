@@ -45,9 +45,9 @@ export const markAllAsRead = asyncHandler(async (_req: AuthRequest, res: Respons
   res.json({ message: 'Toutes les notifications marquées comme lues' })
 })
 
-// Supprimer les notifications lues
+// Supprimer toutes les notifications
 export const clearRead = asyncHandler(async (_req: AuthRequest, res: Response) => {
-  await prisma.notification.deleteMany({ where: { lu: true } })
+  await prisma.notification.deleteMany({})
   res.json({ message: 'Notifications supprimées' })
 })
 

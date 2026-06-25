@@ -47,8 +47,8 @@ export const studentService = {
   },
 
   // Terminer l'examen
-  async submitExam(attemptId: string): Promise<{ message: string; attempt: Attempt; score: number; details: { totalPoints: number; earnedPoints: number } }> {
-    const response = await api.post(`/student/attempts/${attemptId}/submit`)
+  async submitExam(attemptId: string, pendingAnswers?: Record<string, string | string[]>): Promise<{ message: string; attempt: Attempt; score: number; details: { totalPoints: number; earnedPoints: number } }> {
+    const response = await api.post(`/student/attempts/${attemptId}/submit`, pendingAnswers ? { pendingAnswers } : {})
     return response.data
   },
 

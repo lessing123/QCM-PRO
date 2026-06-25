@@ -287,6 +287,38 @@ export const submitExam = asyncHandler(async (req: AuthRequest, res: Response) =
   })
   if (!attempt) return res.status(404).json({ error: 'Tentative non trouvée ou déjà terminée' })
 
+  // Failsafe : sauvegarder les réponses localStorage non persistées avant le calcul du score
+  const pendingAnswers = req.body?.pendingAnswers as Record<string, string | string[]> | undefined
+  if (pendingAnswers && typeof pendingAnswers === 'object' && Object.keys(pendingAnswers).length > 0) {
+    for (const [questionId, ans] of Object.entries(pendingAnswers)) {
+      const question = attempt.exam.questions.find(q => q.id === questionId)
+      if (!question) continue
+
+      if (question.type === 'MULTIPLE') {
+        const ids = (Array.isArray(ans) ? ans : [ans]).filter((v): v is string => typeof v === 'string' && !!v)
+        const validIds = ids.filter(aid => question.answers.some(a => a.id === aid))
+        await prisma.studentAnswer.deleteMany({ where: { attemptId: id, questionId } })
+        if (validIds.length > 0) {
+          await prisma.studentAnswer.createMany({ data: validIds.map(aid => ({ attemptId: id, questionId, answerId: aid })) })
+        }
+      } else {
+        const answerId = Array.isArray(ans) ? ans[0] : ans
+        if (typeof answerId !== 'string' || !answerId) continue
+        if (!question.answers.some(a => a.id === answerId)) continue
+        const existing = attempt.studentAnswers.find(sa => sa.questionId === questionId)
+        if (existing) {
+          if (existing.answerId !== answerId) {
+            await prisma.studentAnswer.update({ where: { id: existing.id }, data: { answerId } })
+          }
+        } else {
+          await prisma.studentAnswer.create({ data: { attemptId: id, questionId, answerId } })
+        }
+      }
+    }
+    // Recharger les réponses fraîches pour un score précis
+    attempt.studentAnswers = await prisma.studentAnswer.findMany({ where: { attemptId: id } })
+  }
+
   let totalPoints = 0
   let earnedPoints = 0
 

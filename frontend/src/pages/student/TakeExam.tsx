@@ -353,24 +353,18 @@ export default function TakeExam() {
     if (timerRef.current) clearInterval(timerRef.current)
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
 
-    // Synchronisation finale : re-soumettre toutes les réponses localStorage avant de clôturer
+    // Inclure les réponses localStorage dans le body : le backend les sauvegarde
+    // atomiquement avant le calcul du score (failsafe contre les pertes réseau)
+    let pendingAnswers: Record<string, string | string[]> | undefined
     try {
       const localRaw = localStorage.getItem(localKey())
-      if (localRaw && examRef.current) {
-        const local = JSON.parse(localRaw) as Record<string, string | string[]>
-        await Promise.allSettled(
-          Object.entries(local).map(([qId, ans]) => {
-            if (Array.isArray(ans)) return studentService.submitAnswer(attemptRef.current!.id, qId, undefined, ans)
-            return studentService.submitAnswer(attemptRef.current!.id, qId, ans)
-          })
-        )
-      }
+      if (localRaw) pendingAnswers = JSON.parse(localRaw) as Record<string, string | string[]>
     } catch { /* ignoré */ }
 
     try { localStorage.removeItem(localKey()) } catch { /* ignoré */ }
     setIsSubmitting(true)
     try {
-      const result = await studentService.submitExam(attemptRef.current.id)
+      const result = await studentService.submitExam(attemptRef.current.id, pendingAnswers)
       if (!auto) toast.success('Examen soumis avec succès')
       navigate(`/student/recap/${result.attempt.id}`)
     } catch (err: any) {

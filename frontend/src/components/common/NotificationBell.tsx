@@ -75,8 +75,8 @@ export default function NotificationBell() {
     }
   }
 
-  const unread    = notifications.filter(n => !n.lu).length
-  const blocked   = notifications.filter(n => n.canUnblock).length
+  const unread  = notifications.filter(n => !n.lu).length
+  const blocked = notifications.filter(n => n.canUnblock && !n.lu).length
 
   const typeColor = (type: string) => type === 'TAB_CHANGE'
     ? 'bg-warning-100 text-warning-600 dark:bg-warning-900/40 dark:text-warning-400'

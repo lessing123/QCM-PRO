@@ -127,7 +127,7 @@ export default function ExamInstructions() {
       navigate(`/student/exams/${id}/take`)
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Erreur'
-      if (err.response?.status === 403 && msg.includes('code')) {
+      if (err.response?.status === 403 && msg.toLowerCase().includes('code')) {
         setCodeError('Code incorrect. Vérifiez avec votre professeur.')
       } else {
         toast.error(msg)

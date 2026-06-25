@@ -108,14 +108,6 @@ export const startExam = asyncHandler(async (req: AuthRequest, res: Response) =>
   })
   if (!exam) return res.status(403).json({ error: 'Examen non disponible' })
 
-  // Vérification du code d'accès
-  if ((exam as any).code_acces) {
-    const provided = req.body?.code_acces
-    if (!provided || provided.toUpperCase() !== (exam as any).code_acces) {
-      return res.status(403).json({ error: 'Code d\'accès incorrect' })
-    }
-  }
-
   const attemptCount = await prisma.attempt.count({
     where: { userId: req.user!.id, examId: id, statut: 'TERMINE' },
   })
@@ -123,6 +115,7 @@ export const startExam = asyncHandler(async (req: AuthRequest, res: Response) =>
     return res.status(403).json({ error: 'Nombre maximum de tentatives atteint' })
   }
 
+  // Reprise d'une tentative existante : pas besoin de re-valider le code
   const existingAttempt = await prisma.attempt.findFirst({
     where: { userId: req.user!.id, examId: id, statut: 'EN_COURS' },
     include: {
@@ -136,6 +129,14 @@ export const startExam = asyncHandler(async (req: AuthRequest, res: Response) =>
       attempt: existingAttempt,
       exam: { ...exam, questions: sanitizeQuestions(exam.questions) },
     })
+  }
+
+  // Nouvelle tentative : vérification du code d'accès requise
+  if ((exam as any).code_acces) {
+    const provided = req.body?.code_acces
+    if (!provided || provided.toUpperCase() !== (exam as any).code_acces) {
+      return res.status(403).json({ error: 'Code d\'accès incorrect' })
+    }
   }
 
   const attempt = await prisma.attempt.create({

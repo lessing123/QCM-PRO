@@ -165,6 +165,7 @@ export interface ExamFormData {
 }
 
 export interface QuestionFormData {
+  id?: string
   enonce: string
   explication?: string | null
   type: QuestionType

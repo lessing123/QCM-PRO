@@ -28,6 +28,7 @@ export default function ExamForm() {
   })
 
   const [questions, setQuestions] = useState<QuestionFormData[]>([])
+  const [originalQuestionIds, setOriginalQuestionIds] = useState<string[]>([])
   const [groups, setGroups] = useState<Group[]>([])
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -67,7 +68,8 @@ export default function ExamForm() {
 
       // Charger les questions
       const { questions: examQuestions } = await examService.getQuestions(examId)
-      setQuestions(examQuestions.map(q => ({
+      const mapped = examQuestions.map(q => ({
+        id: q.id,
         enonce: q.enonce,
         explication: q.explication ?? null,
         type: q.type as QuestionType,
@@ -80,7 +82,9 @@ export default function ExamForm() {
           est_correcte: a.est_correcte,
           ordre: a.ordre,
         })) || [],
-      })))
+      }))
+      setQuestions(mapped)
+      setOriginalQuestionIds(mapped.map(q => q.id!))
     } catch (error) {
       toast.error('Erreur lors du chargement de l\'examen')
       navigate('/admin/exams')
@@ -113,6 +117,25 @@ export default function ExamForm() {
       }
       if (isEditing && id) {
         await examService.update(id, payload)
+
+        // Supprimer les questions retirées
+        const currentIds = questions.filter(q => q.id).map(q => q.id!)
+        for (const oldId of originalQuestionIds) {
+          if (!currentIds.includes(oldId)) {
+            await examService.deleteQuestion(oldId)
+          }
+        }
+
+        // Mettre à jour ou créer les questions
+        for (let i = 0; i < questions.length; i++) {
+          const q = { ...questions[i], ordre: i + 1 }
+          if (q.id) {
+            await examService.updateQuestion(q.id, q)
+          } else {
+            await examService.createQuestion({ ...q, examId: id })
+          }
+        }
+
         toast.success('Examen mis à jour')
       } else {
         const { exam: newExam } = await examService.create(payload)
@@ -217,7 +240,20 @@ export default function ExamForm() {
     setQuestionModal({ ...questionModal, question: { ...questionModal.question!, answers: newAnswers } })
   }
 
-  const splitCsvLine = (line: string) => {
+  const detectCsvSeparator = (firstLine: string): string => {
+    let commas = 0
+    let semicolons = 0
+    let inQuotes = false
+    for (const char of firstLine) {
+      if (char === '"') { inQuotes = !inQuotes; continue }
+      if (inQuotes) continue
+      if (char === ',') commas++
+      else if (char === ';') semicolons++
+    }
+    return semicolons > commas ? ';' : ','
+  }
+
+  const splitCsvLine = (line: string, sep: string) => {
     const cells: string[] = []
     let current = ''
     let inQuotes = false
@@ -236,7 +272,7 @@ export default function ExamForm() {
         continue
       }
 
-      if ((char === ';' || char === ',') && !inQuotes) {
+      if (char === sep && !inQuotes) {
         cells.push(current.trim())
         current = ''
         continue
@@ -291,12 +327,13 @@ export default function ExamForm() {
       throw new Error('Le fichier CSV est vide')
     }
 
-    const headers = splitCsvLine(lines[0]).map(header => header.toLowerCase())
+    const sep = detectCsvSeparator(lines[0])
+    const headers = splitCsvLine(lines[0], sep).map(header => header.toLowerCase())
     const hasHeader = headers.includes('enonce') || headers.includes('question') || headers.includes('answers') || headers.includes('réponses')
     const dataLines = hasHeader ? lines.slice(1) : lines
 
     return dataLines.map((line, index) => {
-      const values = splitCsvLine(line)
+      const values = splitCsvLine(line, sep)
 
       if (hasHeader) {
         const row: Record<string, string> = {}

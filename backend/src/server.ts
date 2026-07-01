@@ -8,6 +8,6 @@ const httpServer = createServer(app)
 initSocket(httpServer)
 
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`)
-  console.log(`📚 API disponible sur http://localhost:${PORT}/api`)
+  console.log(` Serveur démarré sur http://localhost:${PORT}`)
+  console.log(` API disponible sur http://localhost:${PORT}/api`)
 })

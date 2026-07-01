@@ -120,21 +120,21 @@ export default function ExamForm() {
 
         // Supprimer les questions retirées
         const currentIds = questions.filter(q => q.id).map(q => q.id!)
-        for (const oldId of originalQuestionIds) {
-          if (!currentIds.includes(oldId)) {
-            await examService.deleteQuestion(oldId)
-          }
-        }
+        await Promise.all(
+          originalQuestionIds
+            .filter(oldId => !currentIds.includes(oldId))
+            .map(oldId => examService.deleteQuestion(oldId))
+        )
 
-        // Mettre à jour ou créer les questions
-        for (let i = 0; i < questions.length; i++) {
-          const q = { ...questions[i], ordre: i + 1 }
-          if (q.id) {
-            await examService.updateQuestion(q.id, q)
-          } else {
-            await examService.createQuestion({ ...q, examId: id })
-          }
-        }
+        // Mettre à jour ou créer les questions (en parallèle)
+        await Promise.all(
+          questions.map((question, i) => {
+            const q = { ...question, ordre: i + 1 }
+            return q.id
+              ? examService.updateQuestion(q.id, q)
+              : examService.createQuestion({ ...q, examId: id })
+          })
+        )
 
         toast.success('Examen mis à jour')
       } else {
